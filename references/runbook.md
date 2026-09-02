@@ -38,10 +38,12 @@
 > 具体安装目录、密码、私有 IP 见原文档，**不写入本 skill**（yw 诚实边界）。
 > 🔴 危险动作（停库/删数据/外网暴露/重生成授权）仍须确认后执行（见 SKILL.md Step 4）。
 
-### RB-10 · 服务架构与安装路径（先认布局再动手）
-- **两套路径布局（务必先确认用哪套）**：
-  - 有运维服务器（Jenkins 管理）：`/usr/local/dhr`、`/usr/local/ehr/mongodb6`、`/usr/local/ehr/postgresql15`
-  - 无运维服务器（默认 root）：`/data/usr/local/dhr`、`/data/usr/local/ehr/mongodb6`、`/data/usr/local/ehr/postgresql15`
+### RB-10 · 服务架构与安装路径（基础路径 /usr/local）
+- **安装路径基础为 `/usr/local`**（有运维服务器 Jenkins 管理时的标准布局）：
+  - 应用：`/usr/local/dhr`
+  - MongoDB6：`/usr/local/ehr/mongodb6`
+  - PostgreSQL15：`/usr/local/ehr/postgresql15`
+  - 说明：若实际环境根目录不同（如 `/data/usr/local`），按同结构替换前缀即可；本手册所有演示均以 `/usr/local` 为准。
 - **组件与端口**：
   - 应用 DHR：`startDHR.sh` / `stopDHR.sh`；日志 `logs/dhr.log`
   - MongoDB6：端口 **27011**；库 `ehr`；备份 `mongodb_data_bak.sh`
@@ -61,8 +63,8 @@
 
 ### RB-12 · 数据库备份（每天定时，异地多份）
 - **手动备份**：
-  - Mongo：`/usr/local/ehr/mongodb6/mongodb_data_bak.sh`（无运维布局同路径 `/data/...`）
-  - PG：`su - postgres -c "/bin/bash .../postgresql15/postgresql_data_bak.sh"`
+  - Mongo：`/usr/local/ehr/mongodb6/mongodb_data_bak.sh`
+  - PG：`su - postgres -c "/bin/bash /usr/local/ehr/postgresql15/postgresql_data_bak.sh"`
 - **Jenkins 自动备份**：运维服务器（Windows）Jenkins 每天 **2 点备 PG、3 点备 Mongo**，经 FTP 拉到 Jenkins 机，
   存最近 7 天压缩包。Jenkins `http://<ip>:8080`，账号 `ehr/ehr@123`。
 - **🔴 红线**：数据库**严禁外网访问**；备份须同时拷到多台服务器（异地存储），否则磁盘损坏数据全丢用户自负。
@@ -73,8 +75,8 @@
 - **内核参数**：`/etc/sysctl.conf` 加 `vm.overcommit_memory = 1` 后 `sysctl -p`（否则 fork 失败）
 - **切缓存**：`cfg.properties` 加 `cache.redis.host=<IP>`、`cache.redis.port=6389`、`cache.redis.database=0`、
   `cache.redis.username=default`、`cache.redis.password=ENC(...)`；并把 `cache.provider=Redis`
-- **启停**：启动 `/data/redis-7.2.2/bin/redis-server /data/redis-7.2.2/redis.conf`；
-  停止 `/data/redis-7.2.2/bin/redis-cli -p 6389 -a <pwd> shutdown`
+- **启停**：启动 `/usr/local/redis-7.2.2/bin/redis-server /usr/local/redis-7.2.2/redis.conf`；
+  停止 `/usr/local/redis-7.2.2/bin/redis-cli -p 6389 -a <pwd> shutdown`
 - **验证**：`redis-cli -p 6389 ping` 返回 PONG；升级到 **5.10.01+** 才支持 Redis 缓存
 - **坑**：用了 memcache 集群的客户须先升级到 5.10.01 及以上；常见排错 https://segmentfault.com/a/1190000041907267
 
@@ -130,6 +132,76 @@
 - 🔴 **停库/删备份/重生成授权文件**前必须确认影响面并留回滚（见 SKILL.md Step 4）。
 - 🔴 **不通外网的信创私有化不做客开**，必须做先联系研发。
 - 不编造未观测事实；拿不到原文档明细的项标注「需核对《...》」。
+
+### RB-18 · DHR2.0 更新/升级流程（变更型 · 须确认后执行）
+- **触发**：私有化部署需更新 `ehr_privatization.war`（补丁/小版本/大版本升级）。升级=停服变更，
+  停库/删旧目录/改密码前**必须确认影响面与回滚预案**（见 SKILL.md Step 4 高危清单）。
+- **前置判断（先认再看）**：
+  - ① 升级通道：有运维服务器（Jenkins 管）→ 常规走 Jenkins 一键更新（路径B）；**仅 DHR1.0 → 2.0 跨代迁移**才走长流程（路径C）。无运维服务器 → 手动 `deployDHR.sh`（路径A）。
+  - ② 当前版本：登录页右下角版本号（升级前记录、升级后核对）。
+  - ③ 路径布局（RB-10）：应用 `/usr/local/dhr`、库 `/usr/local/ehr/...`。
+- **路径A · 无运维服务器更新**（本机 `dhr2.0无运维服务器更新.txt`，确定可用）：
+  1. 停应用：`cd /usr/local/dhr && sh stopDHR.sh`
+  2. 备 PG：`su - postgres -c "/bin/bash /usr/local/ehr/postgresql15/postgresql_data_bak.sh"`
+  3. 备 Mongo：`/usr/local/ehr/mongodb6/mongodb_data_bak.sh`
+  4. 传包：上传 `ehr_privatization.war` 到应用服务器 `/usr/local`
+  5. 执行更新：`/usr/local/deployDHR.sh`（自动解包部署）
+  6. 启应用：`cd /usr/local/dhr && sh startDHR.sh`
+- **路径B · 有运维服务器常规升级（Jenkins 一键更新）**：
+  常规版本更新（补丁 / 小版本 / 同代大版本）在**有运维服务器**环境，直接通过 Jenkins 一键更新即可，
+  **无需手动停库 / 传包 / 恢复数据 / 清理旧目录**。运维机 Jenkins 已配置连接应用与数据库服务器
+  （`http://<ip>:8080`，账号 `ehr/ehr@123`，见 RB-12）；选对应升级任务 → 执行 → 等部署完成 → 启服验证（见验证段）。
+  - 🔴 **边界：常规升级 = Jenkins 一键**；只有 DHR1.0 → 2.0 跨代迁移才走路径C 长流程，日常升级切勿套用。
+- **路径C · DHR1.0 → 2.0 跨代迁移（仅此场景，非日常升级）**：
+  - ⚠️ **此流程只适用 dhr1.0 升级到 2.0 的跨代迁移，不适用于常规升级**（常规升级见路径B）。
+  - 长流程（基于 2023 版实施文档）：老版先 Jenkins 一键升过渡版 → 停应用 → 备库 → 停 mongo/pg → 传 `dhr2.0` 包 →
+    复制 `.properties`/`tomcat.properties`/`sms` 配置 → 启 Jenkins 配连接 → `deployMongodb`/`deployPostgres` →
+    恢复备份数据 → 改库密码与 `cfg` → 执行 PG 索引删除（`DROP INDEX IF EXISTS index_roles;`、`index_sub_depts;`）→
+    `deployDHR` 升目标版 → 启服验证 → 清理旧目录（`/usr/local/ehr/pgsql`、`/usr/local/ehr/mongodb`、`/usr/local/ehrapp`）。
+  - 🔴 版本号 / 统一密码以当前实施文档为准；本 playbook 不存明文密码。
+- **部署前必查检查点**：
+  - `tomcat.properties`：端口 + 证书（HTTPS 证书配置见 RB-19；证书类型 tomcat/pfx，单端口限制）
+  - `sms.properties`：短信平台（非我方容联须改）
+  - `cfg` 个性化中文：转 Unicode 编码
+  - 出网白名单：应用须可达 `license.x-dhr.com` + `www.x-dhr.com`（见语雀《白名单说明》🔴 待核对；原理见 RB-10 分层定位）
+  - 信创无运维升级差异见语雀《信创环境无运维升级》🔴 待核对（栈差异见 RB-14）
+- **验证**：升级后登录页版本号=目标版；`ps -ef | grep -E 'dhr|mongod|postgres'` 进程在；
+  `tail -200f logs/dhr.log` 无新错；业务可正常登录操作（同 RB-11 验证三件套）。
+- **坑**：
+  - 升级须停服窗口期；**备库是红线**（RB-12），未备库禁止删旧目录。
+  - 大版本升级可能改数据库密码/路径，按实施文档同步 `cfg` 连接串。
+  - 用横石/BI 的客户：升级后 `mongoBI` 需重启、横石数据源 BI 密码需改（遗留项）。
+  - 菜单提示「非法请求 ip / ip 地址不合法」→ 见 RB-02（授权绑定两层）+ 语雀《非法请求ip》🔴 待核对。
+
+### RB-19 · Tomcat 证书配置（HTTPS / SSL，变更型 · 须确认后执行）
+- **来源**：语雀《dhr2.0 Tomcat证书配置操作说明》（2026-09-02 用户提供导出）；此前 🔴 项已核对补全。
+- **原则分层（先判代理形态）**：
+  - 用了 **Nginx 反向代理** → 证书在 **Nginx 侧**配（参考 Nginx 配置手册），不在 Tomcat 改。
+  - **无 Nginx 代理** → 证书在 **Tomcat 侧**配（本 playbook）。
+- **触发**：① 需启用/更换 HTTPS 证书；② 启动报 `Keystore 密码错误` 致 Spring Boot 失败（关联 RB-16）。
+- **分层定位**：证书层（证书缺失 / 密码错 / 过期）→ 配置层（`tomcat.properties` 端口/证书路径/密码未配齐）→ 启动失败。
+- **关键事实**：
+  - 应用默认路径 `/usr/local/dhr`；**端口与证书配置文件路径 `/usr/local/dhr/config`，文件名 `tomcat.properties`**。
+  - 支持证书类型：**tomcat 证书**（文档示例 `server.pfx`，PKCS12 格式）。
+  - ⚠️ **单端口限制**：服务只支持一个端口，**不支持 http 与 https 同时启用**；默认端口 443，ssl 三项默认注释，启用需删行首 `#`。
+  - 端口调整 → 防火墙开对应端口；映射外网还须联系用户改端口映射。
+- **标准处置（无 Nginx 场景）**：
+  1. **准备证书（客户提供，不生成/不转换）**：客户提供 tomcat 证书（如 `server.pfx`，PKCS12 格式）直接放 `/usr/local/dhr/config` 即可。
+     🔴 **yw 不生成自签名证书、不做证书格式转换**——证书由客户提供，yw 仅负责部署配置。
+  2. **启用 HTTPS（取消三配置项注释并填值）**，编辑 `/usr/local/dhr/config/tomcat.properties`：
+     `server.port=443`（或 8443）、`server.ssl.key-store=/usr/local/dhr/config/server.pfx`、
+     `server.ssl.key-store-password=<pwd>`、`server.ssl.key-store-type=PKCS12`（pfx 对应）；删对应行首 `#` 使生效。
+  3. **改访问地址**：同步改 `cfg.properties` 中私有化产品访问地址为 https 地址。
+  4. **覆盖并重启**：
+     - 有运维服务器：改运维机 dhr 下 `tomcat.properties` + `cfg.properties` → 覆盖到应用服务器 `/usr/local` 与 `/usr/local/dhr/config` → 重启（RB-11）。
+     - 无运维服务器：直接改 `/usr/local` 与 `/usr/local/dhr/config` 下两文件 → 重启（RB-11）。
+- **验证**：`curl -sv https://<host>:<port>` 握手成功/返回 200；浏览器无证书告警；`tail -200f logs/dhr.log` 无 `Keystore 密码错误` / SSL 配置错；业务以 https 可访问。
+- **坑**：
+  - `Keystore 密码错误` → Spring Boot 启动失败（见 RB-16），修正密码或重导证书，别急着重装。
+  - **单端口**：启用 https 后 http 自动失效，勿同时配两套协议。
+  - 证书类型须与 `key-store-type` 一致（客户给 pfx↔PKCS12、给 jks↔JKS），否则启动报 SSL 配置错。
+  - 证书过期 → 由客户提供新证书替换原文件后重启应用（RB-11）；勿自行生成或转换。
+  - 改 `tomcat.properties`/`cfg.properties` 属危险变更（列 RB-17 高危清单），确认影响面后执行；有 Nginx 代理走 Nginx 侧。
 
 ---
 
