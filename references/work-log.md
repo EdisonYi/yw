@@ -201,8 +201,8 @@
   - RB-12 加「无运维服务器定时备份(crontab)」子节: root 连库 + `crontab -e` 追加 Mongo(02:00 mongodb6/8 路径) / PG(01:00 `su - postgres`) 两行；tool.lu/crontab 校验表达式；`crontab -l` 验证
   - 新增 RB-23 Tomcat端口修改: 改 `tomcat.properties` 的 `server.port`(默认 443→8443) + `cfg.properties` 访问地址；有/无运维覆盖路径差异；端口变更后防火墙开新端口+外网映射；单端口限制(关联 RB-19)
   - SKILL.md 路由 RB-10~RB-22→RB-10~RB-23（两处）+ 调研来源补第三批 2 篇
-- 验证: Grep 确认 RB-23 / 无运维服务器定时备份 / crontab 已落位；SKILL 7660B(<9820 红线)；runbook 体积增长可控；本回同步确认 SKILL/runbook/work-log 已无"容器"字样（17:01 清理）
-- 待跟进: 本次改动 + 17:01 容器清理均仅在本地，是否推 GitHub（远程仍是 16:51 commit 1d17709）
+- 验证: Grep 确认 RB-23 / 无运维服务器定时备份 / crontab 已落位；SKILL 7660B(<9820 红线)；runbook 体积增长可控；本回同步确认 SKILL/runbook 已无"容器"字样（17:01 清理；work-log 仅变更记录行提及"容器"二字，非部署内容）
+- 推送: 17:11 经 GitHub Contents API 合并推送 Options B（前两轮回合，不含待补三篇）→ SKILL.md@ddfce76 / runbook.md@63e84ef / work-log.md@3cfce76（远程 main 由 16:51 前进）
 
 ## 2026-09-02 16:55 · 咨询：ip地址不合法（@skill:yw）
 - 类型: 咨询（现象型，分诊复用 RB-02 / RB-22）
