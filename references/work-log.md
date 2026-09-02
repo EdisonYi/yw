@@ -165,9 +165,30 @@
   - 新增 RB-20 进程及日志查询(🔴 待《服务进程及日志查询》原文) + RB-21 应用出网白名单(两 URL 已坐实)
   - SKILL.md 路由 RB-10~RB-19→RB-10~RB-21(两处) + 调研来源补语雀导出系列
 - 验证: Grep 确认 RB-16 矩阵原 🔴 项已去(残留 🔴 仅为 RB-17 红线/无原文待补项: 东方通临时文件/信创无运维升级/非法请求ip/RB-20)；SKILL.md 7450B(<9820)、runbook 23638B；一致性通过
-- 待跟进: ①仍缺原文待补: 东方通临时文件缺失 / 信创无运维升级 / 非法请求ip / 服务进程及日志查询(RB-20) ②是否推 GitHub（本地已补全，远程 commit 4da9a27 旧版）
+- 待跟进: ①仍缺原文待补四项的原文已于 16:46 批次补齐（见下）②是否推 GitHub（16:32 已推一次，本次新改动待推）
 
 ## 2026-09-02 16:32 · 推送 yw 到 GitHub（用户指令）
 - 类型: 交付（GitHub Contents API + curl 经代理；git push 本环境不可用）
 - 推送文件: SKILL.md(7450B) / references/runbook.md(23638B) / references/work-log.md(18834B) 三件全覆盖；README.md 保留远程；.bak 不推
 - 预期: 远程 main 同步到本次语雀 14 篇补全后的完整版（RB-10~RB-21）；commit 由旧 4da9a27 前进
+
+## 2026-09-02 16:46 · 变更：语雀次批 5 篇补全 yw runbook 剩余 🔴 待补项（darwin 把关）
+- 类型: 变更（知识补全；darwin 2.0 把关：先备份/最小完整变更/一致性/体积复核）
+- 来源: 用户提供 Downloads 下 5 篇语雀导出 md（备份数据还原 / 信创环境无运维升级 / 东方通临时文件缺失NoSuchFileException / 服务进程及日志查询 / 智多薪菜单非法请求ip）
+- 现象: runbook 仍有 4 处 🔴 待核对（东方通临时文件/信创无运维升级/非法请求ip/RB-20 进程日志）+ RB-12 仅备份缺还原
+- 备份: runbook.md.bak.20260902-1646 + SKILL.md.bak.20260902-1646
+- 处置:
+  - RB-12 加「还原」段: Mongo(mongodb6/8) mongorestore / PG15 pg_restore 命令（明文密码转 <pwd> 占位）；信创库还原联系厂商
+  - RB-16 东方通行去🔴: tongweb.properties 加 server.tongweb.basedir=./temp（有/无运维路径差异），区分 /tmp 被清理根因
+  - RB-18 信创无运维去🔴: 路径A变体——中间件 war 名(ehr_tongweb/bes/aas.war)、信创库备份联系厂商、配置备份 /tmp/properties日期
+  - RB-18 坑: 菜单非法请求ip 指向新建 RB-22（与 RB-02 启动授权区分）
+  - RB-20 去🔴补全: ps aux|grep dhr / tail -300f dhr.log / dhr.log.xxxx-xx-xx.0.gz gzip -d
+  - 新增 RB-22 运行时非法请求ip（智多薪菜单）: 公有云开放平台加IP / 私有云 dev_ip 字段加IP重启 / license类报生产管理员；与 RB-02 启动 mac/ip 不合法明确区分
+  - SKILL.md 路由 RB-10~RB-21→RB-10~RB-22（两处）+ 调研来源补次批 5 篇
+- 验证: Grep 确认 runbook 无「待核对/待原文」类 🔴 残留（仅 RB-17 红线/RB-12 红线/RB-18 边界/RB-19 证书原则/RB-22 已补全说明等正当标记）；runbook 23638B→27218B、SKILL 7669B(<9820 上限)
+- 待跟进: ①全部 🔴 待补项已清空，yw 进入 RB-10~RB-22 完成态 ②本次改动仅在本地，是否推 GitHub（远程仍是 16:32 commit 58149fa 旧版）
+
+## 2026-09-02 16:51 · 推送 yw 到 GitHub（用户指令「推送」）
+- 类型: 交付（GitHub Contents API + curl 经代理；git push 本环境不可用）
+- 推送文件: SKILL.md(7669B) / references/runbook.md(27218B) / references/work-log.md(21215B) 三件全覆盖；README.md 保留远程；.bak 不推
+- 预期: 远程 main 同步到次批 5 篇补全后的 RB-10~RB-22 完成态（无遗留 🔴 待补项）；commit 由旧 58149fa 前进
