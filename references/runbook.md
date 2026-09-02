@@ -98,8 +98,9 @@
 ### RB-14 · 信创/国产化部署（银河麒麟 ky10）
 - **支持栈**（来自《dhr2.0信创支持明细》）：
   - OS：**银河麒麟 ky10**（国产化）；浏览器不支持 IE 内核，用 Edge/Chrome/Firefox/360极速等
-  - 中间件（四选一，嵌入式版）：**东方通 TongWeb 7.0.E / 宝兰德 BES V11 / 金蝶 V10.0.9 / 中创 V0.0.3.3**
-  - 文档库：**巨杉 SequoiaDB**；关系库（二选一）：**人大金仓 V8R6（兼容模式必须 PG 模式）/ 达梦 V8(7000c)**
+  - 中间件（四选一，嵌入式版）：**东方通 TongWeb V7.0.E.6_P3 / 宝兰德 BES V11 / 中创 InforSuite AS V10.0.3.3 / 金蝶 Apusic V10.0.X**
+  - 关系库（三选一）：**人大金仓 V8R6（兼容模式必须 PG 模式）/ 海量 Vastbase G100 V2.2（PG 兼容模式）/ 达梦 V8（7000c，小版本号 3.100 以上）**
+  - 非关系库（文档库）：**DocDB 迪欧西文档型数据库 V3.4**（原巨杉 SequoiaDB 在信创明细中由 DocDB 取代，以《初始部署速览》为准）
 - **人大金仓 R6**：Linux 非 root 用户安装（需标准 home）；字符集 UTF-8、不区分大小写；端口 **54321**；
   `max_connections` 改 1000；**兼容模式必须选 PG 模式**（三强调）
 - **达梦 V8(7000c)**：UTF-8、取消大小写敏感、VARCHAR 以字符为单位；页大小 32K、日志 2048M；
@@ -119,6 +120,7 @@
 | 全文检索 | ES；4~8核/8~16G/500G；端口 9203 | 同左 |
 - **红线**：各服务器**不能合并**、不能装第三方服务（如衡石/OA）；必须单独购买部署；必须买防火墙；
   数据库防火墙开 27011/54321(金仓)/5236(达梦)，web 开 80/443，ES 开 9203；时间须校准（`timedatectl`/ntpdate）。
+- **备注**（来源《私有化初始部署速览》）：人数 >3000 / 全员考勤打卡 / 批量算薪 的客户推荐高配服务器；运维服务器可用普通 PC 代替（主要方便运维、无命令操作）。
 
 ### RB-16 · 启动报错排查矩阵（DHR2.0 启动错误 · 语雀原文补全）
 > 来源（语雀导出系列，2026-09-02 本机补全，分批）：①首批 mac/ip地址不合法、authCode不合法、程序不支持降级、
@@ -265,6 +267,45 @@
   4. 🔴 **端口变更后**：防火墙须开放新端口；映射到外网还须联系用户改端口映射。
 - **验证**：`curl -sv https://<host>:<新端口>` 握手/200；`ss -tlnp` 新端口监听；`tail -200f logs/dhr.log` 无报错；业务以新端口可访问。
 - **坑**：单端口限制（RB-19）——启用 https 后 http 自动失效，勿同时配两套协议；改 `tomcat.properties`/`cfg.properties` 属 RB-17 高危，确认影响面后执行。
+
+### RB-24 · cfg.properties 配置项（SSRF / 文件 / 安全头 / 登录限制 / 默认密码）
+- **来源**：语雀《cfg.properties 其他项配置项说明》（2026-09-02 用户提供导出）。
+- **配置文件**：`cfg.properties`，路径 无运维 `/usr/local/dhr/config`（及 `/usr/local`），有运维改运维机 dhr 目录后覆盖到应用两处；改完**重启应用**生效（RB-11）。
+- **分层配置项**：
+  - **SSRF Host 黑白名单**（防服务器访问内网其他服务器）：
+    - 黑名单（客户无外部控件、禁用所有 host 访问）：`ours.host.blocked=*`
+    - 白名单（有外部控件、放开需访问主机）：`ours.host.allowed=192.168.50.1,192.168.1.*,*.baidu.com`
+    - 规则：多项逗号分隔；支持通配符（`192.168.50.*` 匹配 .1~.255、`*.baidu.com` 匹配子域）；**黑名单优先级 > 白名单**；未配白名单且不在黑名单→默认允许访问（兼容老版本）。
+  - **文件相关**：`file.allowOuterUpload=false`（是否允许非登录用户上传；⚠️ 改 true 影响部分外部填写上传附件功能）、`file.allowTypes=.pdf,.doc,.docx,.xlsx,.xls,.ppt,.jpg,.jpeg,.png,.gif`（允许类型，逗号分隔可增）、`file.checkPDF=true`（上传 PDF 校验脚本，7.07.01 及以下控制上传和预览）、`file.checkPreviewPDF=false`（预览 PDF 校验脚本，默认控上传即可，7.08.01 新增）、`file.allowDeleteDiskFile=false`（删附件是否物理删文件，默认不删，硬盘敏感客户配 true，8.03.01 新增）。
+  - **安全响应头**（防 Host 头攻击）：`ours.security.hosts[0]=localhost`、`ours.security.hosts[1]=abc.com:8081`（允许 Host，计数从 0，域名带端口）；CSP/X-Frame-Options/Referrer-Policy/X-XSS-Protection/X-Content-Type-Options/X-Permitted-Cross-Domain-Policies/X-Download-Options/Strict-Transport-Security 各项值见语雀原文。⚠️ 谨慎配置，否则可能无法访问、客开/集成第三方系统无法加载。
+  - **限制请求方法**：`ours.security.request-methods[0]=GET`、`[1]=POST`。
+  - **限制单设备登录**：`login.duplicate=1`（PC 挤 PC、移动挤移动；oa 集成薪事力跳转不受此参数影响）。
+  - **登录失败锁定时间**：`login.limitLoginTimeout=1800`（秒，超最大失败次数锁定，8.08.01 新增）。
+  - **预置默认密码**：`product.defaultPassword=123456`（明文，仅对该配置后重启新开通的账号有效，替换 123456 为自定义）。
+- **🔴 坑**：改 `cfg.properties` 属 RB-17 高危（影响认证/安全），确认影响面后执行；有/无运维覆盖路径差异见 RB-19 / RB-23。
+
+### RB-25 · 屏蔽登录页面（product.disableLogin）
+- **来源**：语雀《dhr2.0屏蔽登录页面配置》（2026-09-02 用户提供导出）。
+- **触发**：需屏蔽/隐藏薪事力登录页面。
+- **标准处置**：`cfg.properties` 增加 `product.disableLogin=true` → **重启应用**生效（RB-11）。
+  - 有运维服务器：改运维机 dhr 目录下 `cfg.properties` → 覆盖到应用服务器 `/usr/local` 与 `/usr/local/dhr/config` → 重启。
+  - 无运维服务器：改 `/usr/local` 与 `/usr/local/dhr/config` 两处 `cfg.properties` → 重启。
+- **验证**：重启后登录页面被屏蔽。
+- **坑**：属 `cfg.properties` 配置，走 RB-17 高危确认；覆盖路径差异同上。
+
+### RB-26 · 私有化初始部署速览（部署前速查）
+- **来源**：语雀《dhr2.0私有化初始部署速览》（2026-09-02 用户提供导出）。
+- **双数据库架构**（薪事力须两库同时安装才能启动）：
+  - PostgreSQL 15：存基础数据（组织部门、人员花名册、薪酬档案、社保公积金、考勤档案等结构化）。
+  - MongoDB 8：存业务数据（考勤打卡、招聘简历、工资套/表、报表、表单、绩效等非结构化/半结构化）。
+- **信创支持明细**（完整版见 RB-14）：OS（银河麒麟 ky10 / openEuler 22.03 LTS SP3 / 统信 V20 1070）；中间件（东方通 TongWeb V7.0.E.6_P3 / 宝兰德 BES V11 / 中创 InforSuite AS V10.0.3.3 / 金蝶 Apusic V10.0.X）；关系库（人大金仓 V8R6 / 海量 Vastbase G100 V2.2 / 达梦 V8 7000c+小版本 3.100）；非关系库（DocDB 迪欧西 V3.4）。
+- **服务器配置**：人数 >3000 / 全员考勤打卡 / 批量算薪 → 推荐高配（见 RB-15）；运维服务器可用普通 PC（方便运维、无命令操作）。
+- **环境检查清单**（部署前必查，关联 RB-10 / RB-15）：
+  - 磁盘：大小 + 挂载；服务器时间须准确（`timedatectl` / ntpdate）。
+  - 网络：服务器间通信；**应用服务器须能访问 `https://license.x-dhr.com`**（外部功能含考勤定位中转、节假日、招聘三方、社保比例、智能报税、表单 lbs、云脚本同步、电子合同、培训、AI 助手、短信）；有运维服务器须访问 `https://svn.x-dhr.com`。
+  - 端口开放：数据服务器 mongo **27011** / PG **5632**；应用服务器 **80 或 443**（⚠️ Linux 普通用户无法用 1024 以下端口）。
+- **部署手册索引**（部署时查语雀原文）：无运维部署手册 / 有运维（Ubuntu22.04）部署文档 / 信创（ky10）部署文档（东方通、宝兰德、金蝶、中创）；升级步骤见 RB-18；其他常用：证书配置（RB-19）/ 端口修改（RB-23）/ nginx 反向代理 / limit.properties / cfg.properties 图解 / 数据操作（RB-12）。
+- **高频问题索引**：启动报错系列见 RB-16；更多检索语雀运维知识库。
 
 ---
 
