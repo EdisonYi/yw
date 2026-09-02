@@ -23,7 +23,7 @@
   **提交单位信息 + 提示的 mac/ip 给 license 生产管理员重新绑定新地址** → 重启应用（RB-11）。
   - 双网卡环境建议把授权绑到**内网固定 MAC**，避免系统随机取错网卡。
 - **验证**：重启后授权校验通过、应用正常起；`logs/dhr.log` 无地址不合法。
-- **坑**：代理链下取 `X-Forwarded-For` 为空会误判来源，须从真实网卡取；容器部署读的是容器 IP 而非宿主真实 MAC，须让授权按宿主/指定网卡生成；格式非法先改格式，别急着重生成授权。
+- **坑**：代理链下取 `X-Forwarded-For` 为空会误判来源，须从真实网卡取；格式非法先改格式，别急着重生成授权。
 
 ## RB-03 · 磁盘满 / 端口冲突 / 进程死了（通用三板斧）
 - **触发**：服务异常、起不来、端口被占。
@@ -71,6 +71,12 @@
   - PG：`su - postgres -c "/bin/bash /usr/local/ehr/postgresql15/postgresql_data_bak.sh"`
 - **Jenkins 自动备份**：运维服务器（Windows）Jenkins 每天 **2 点备 PG、3 点备 Mongo**，经 FTP 拉到 Jenkins 机，
   存最近 7 天压缩包。Jenkins `http://<ip>:8080`，账号 `ehr/ehr@123`。
+- **无运维服务器定时备份（crontab）**（来源《dhr2.0无运维服务器如何创建数据库自动备份定时任务》）：无运维服务器时，
+  用系统 crontab 做每日定时备。**以 root 连数据库服务器**；`crontab -e`（ubuntu 首次需按提示设默认编辑器）追加：
+  - Mongo：`00 02 * * * /usr/local/ehr/mongodb6/mongodb_data_bak.sh`（mongodb8 改 `mongodb8` 路径）
+  - PG：`00 01 * * * su - postgres -c " /bin/bash /usr/local/ehr/postgresql15/postgresql_data_bak.sh"`（须 postgres 用户）
+  - 表达式 `00 02 * * *` = 每天 02:00；时间调整用 https://tool.lu/crontab/ 校验后替换。路径按实际安装目录改（默认 `/usr/local/ehr`）。
+  - **验证**：`crontab -l` 可见两行；次日查 `data_bak` 目录生成备份包。
 - **🔴 红线**：数据库**严禁外网访问**；备份须同时拷到多台服务器（异地存储），否则磁盘损坏数据全丢用户自负。
 - **还原（🔴 变更型 · 须确认影响面后执行）**（来源《dhr2.0备份数据还原》）：
   - **MongoDB 还原**（mongodb6 `/usr/local/ehr/mongodb6` / mongodb8 `/usr/local/ehr/mongodb8`）：① 备份文件拷到对应 `data_bak`（格式 `ehr_YYYYMMDDhhmmss.tar.gz`）② `cd data_bak && tar xf *.tar.gz` ③ `../bin/mongorestore -h 127.0.0.1:27011 -u ehr -p <pwd> -d ehr --drop ./ehr_data/ehr --gzip`（端口 27011、库 ehr、用户 ehr；`<pwd>` 占位不固化明文）。
@@ -243,6 +249,22 @@
   - **私有云提示「获取 license 失败：ip 地址不合法」**（与 license 相关）：将报错单位 + 提示显示 IP 发给**薪事力生产系统管理员**处理（同 RB-02 重绑逻辑）。
 - **验证**：加 IP 并重启（私有云走 dev_ip 须重启）后，智多薪菜单可正常进入。
 - **坑**：私有云改 `dev_ip` 必须重启应用才生效；公有云开放平台加 IP 一般实时。与 RB-02 勿混淆——RB-02 启动期报 mac/ip 不合法是 license 绑定旧地址，本 RB 是运行时菜单 IP 白名单。
+
+---
+
+## RB-23 · Tomcat 端口修改（变更型 · 须确认后执行）
+- **来源**：语雀《dhr2.0Tomcat端口修改操作说明》（2026-09-02 用户提供导出）。
+- **触发**：需改应用监听端口（默认 443，常见改 8443）；或端口冲突（RB-16 地址已在使用）须换端口。
+- **关键事实**：应用默认路径 `/usr/local/dhr`；端口与证书配置文件 `tomcat.properties` 在 `/usr/local/dhr/config`；端口参数 `server.port`。
+- **标准处置**：
+  1. 改 `tomcat.properties` 中 `server.port`（如 443 → 8443）。
+  2. 同步改 `cfg.properties` 中私有化产品访问地址为新端口对应的 http(s) 地址。
+  3. 覆盖与重启：
+     - 有运维服务器：改运维机 dhr 下 `tomcat.properties` + `cfg.properties` → 覆盖到应用 `/usr/local` 与 `/usr/local/dhr/config` → 重启（RB-11）。
+     - 无运维服务器：直接改 `/usr/local` 与 `/usr/local/dhr/config` 下两文件 → 重启（RB-11）。
+  4. 🔴 **端口变更后**：防火墙须开放新端口；映射到外网还须联系用户改端口映射。
+- **验证**：`curl -sv https://<host>:<新端口>` 握手/200；`ss -tlnp` 新端口监听；`tail -200f logs/dhr.log` 无报错；业务以新端口可访问。
+- **坑**：单端口限制（RB-19）——启用 https 后 http 自动失效，勿同时配两套协议；改 `tomcat.properties`/`cfg.properties` 属 RB-17 高危，确认影响面后执行。
 
 ---
 
