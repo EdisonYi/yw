@@ -13,14 +13,17 @@
 - **验证**：`git push` 成功；远程真实 HEAD 用 `curl -s https://api.github.com/repos/<owner>/<repo>/commits/main` 核验（本地 remote-tracking ref 可能被代理缓存，不可信）。
 - **坑**：git 身份非全局——新仓库先 `git config user.name/user.email`；认证走 Windows 凭据管理器，通常无需 PAT。
 
-## RB-02 · 软加密/授权启动报「地址不合法」或「IP/MAC 不匹配」
-- **触发**：服务起不来，授权校验报地址不合法 / license 可达但绑定不一致。
-- **定位**：两层不可混——① **格式非法**（IPv4 禁前导零/段超 255、MAC 归一为 `:` 后过正则）；
-  ② **绑定不一致**（授权按旧 MAC/IP 生成 ≠ 当前真实来源：迁移/换网卡/双网卡取错/DHCP/容器宿主 vs 容器 IP）。
-- **标准处置（绑定不一致）**：取真实 `ip a` + `cat /sys/class/net/<主网卡>/address` → 与授权登记比对 →
-  用真实 MAC+IP 重新提交授权方重生成授权文件 → 重启；双网卡建议绑内网固定 MAC。
-- **验证**：重启后授权校验通过、服务正常起。
-- **坑**：代理链下取 `X-Forwarded-For` 为空会误判来源，须从真实网卡取；格式非法先改配置，别急着重生成授权。
+## RB-02 · 软加密/授权报「mac/ip 地址不合法」（授权绑定）
+- **触发**：应用启动报 `mac地址不合法：xx-xx…` 或 `ip地址不合法：x.x.x.x`（Caused by: ...BizException）。
+- **根因（语雀原文）**：服务器 MAC 或 IP 改变（含迁移 / 换网卡）→ license 绑定的是初次部署获取的旧 MAC/IP，不符即拒。
+- **两层不可混**（排障时先判）：
+  - ① **格式非法**（本机 xzl 校验逻辑）：授权登记的 IP 有前导零/段>255、MAC 未归一成 `:` 分隔 → 改授权配置里的地址书写格式（低风险）。
+  - ② **绑定不一致**（语雀运行时主因）：格式对但 ≠ 当前真实网卡 → 须重绑授权（高风险，见下）。
+- **标准处置（绑定不一致 / 即语雀该报错）**：收集真实 `ip a` + `cat /sys/class/net/<主网卡>/address` 的 MAC/IP →
+  **提交单位信息 + 提示的 mac/ip 给 license 生产管理员重新绑定新地址** → 重启应用（RB-11）。
+  - 双网卡环境建议把授权绑到**内网固定 MAC**，避免系统随机取错网卡。
+- **验证**：重启后授权校验通过、应用正常起；`logs/dhr.log` 无地址不合法。
+- **坑**：代理链下取 `X-Forwarded-For` 为空会误判来源，须从真实网卡取；容器部署读的是容器 IP 而非宿主真实 MAC，须让授权按宿主/指定网卡生成；格式非法先改格式，别急着重生成授权。
 
 ## RB-03 · 磁盘满 / 端口冲突 / 进程死了（通用三板斧）
 - **触发**：服务异常、起不来、端口被占。
@@ -57,6 +60,7 @@
   - `su - postgres -c "/bin/bash .../postgresql15/startpostgresql.sh"`
   - `dhr/startDHR.sh`
 - **停止顺序（反向）**：① DHR 应用 → ② MongoDB → ③ PostgreSQL。
+- **坑（PostgreSQL 启停）**：PG **必须切非 root 用户**（postgres）启停。若曾用 root 启动，会在安装目录留 root 属主的 `logfile`，再切 postgres 启会报 `Permission denied` → 处理：root 下删该 `logfile` 后重启用 `su - postgres -c "/bin/bash .../postgresql15/startpostgresql.sh"`；服务器断电重启后直接 `su - postgres` 启即可（logfile 属主已是 postgres）。
 - **验证**：`ps -ef | grep -E 'dhr|mongod|postgres'` 进程在；`tail -200f logs/dhr.log` 无新错；
   `curl -sv <host>:80/health` 或业务页可访问。
 - **坑**：先起应用后起库 → 应用连库失败报一堆错，属启动顺序问题非代码问题。
@@ -105,25 +109,28 @@
 - **红线**：各服务器**不能合并**、不能装第三方服务（如衡石/OA）；必须单独购买部署；必须买防火墙；
   数据库防火墙开 27011/54321(金仓)/5236(达梦)，web 开 80/443，ES 开 9203；时间须校准（`timedatectl`/ntpdate）。
 
-### RB-16 · 启动报错排查矩阵（DHR2.0 启动错误）
-> 来源：《dhr2.0各类启动报错关键信息》《启动薪事力服务关键错误信息：地址已在使用》
-> 《登录系统提示错误号仍提示错误号》。🔴 标记项 = 原文档未取到本地副本，按 xzl 既有覆盖 + 通用运维知识编写，需核对原文。
+### RB-16 · 启动报错排查矩阵（DHR2.0 启动错误 · 语雀原文补全）
+> 来源（语雀导出系列，2026-09-02 本机补全）：mac/ip地址不合法、authCode不合法、程序不支持降级、
+> 产品升级时间已到期、UnknownHostException license.x-dhr.com、获取license失败 license.x-dhr.com、
+> Keystore密码错、地址已在使用、PG共享缓存被删、squid代理配置、登录提示错误号循环、启动postgre注意事项。
+> 应用默认路径 `/usr/local/dhr`，日志 `logs/dhr.log`（`tail -300/-500` 看关键报错）。
 
-| 报错关键词 | 根因分层 | 标准处置 |
+| 报错关键词（Caused by / 提示） | 根因分层 | 标准处置（语雀原文） |
 |---|---|---|
-| 产品升级时间到期 | license 有效期 | 续期/重生成授权文件（交实施）；🔴 需核对原文档处置 |
-| authCode 不合法 | 授权码/注册码 | 核对授权码与版本匹配；🔴 需核对原文档 |
-| 程序不支持降级 | 版本回退 | 不支持降级，须升到目标版本或重装；🔴 需核对 |
-| Keystore 密码错误 | 证书/SSL | 证书 keystore 密码错致 Spring Boot 启动失败 → 修正密码或重导证书（xzl 04-case 实证）|
-| license 获取/域名解析失败 | 网络/DNS | ① 确认应用出网到 license.x-dhr.com；② DNS 解析；③ 绑定不一致走 RB-02 Q1b |
-| mac/ip 地址不合法 | 授权绑定 | 见 RB-02（Q1a 格式 / Q1b 绑定不一致，两层不可混）|
-| PostgreSQL 共享缓存缺失 | 数据层/内核 | `shared_buffers` 与内核 `SHMMAX` 不足 → 调大 PG 共享内存/内核参数 |
-| 东方通中间件临时文件缺失 | 中间件 | TongWeb 临时目录缺失/权限不足 → 建目录并赋权给中间件运行用户 |
-| squid 代理配置 | 网络/代理 | 代理取 `X-Forwarded-For` 为空/配错 → 修正 Nginx/squid `proxy_set_header`（xzl 03 §4）|
-| 地址已在使用（Address already in use） | 服务层/端口 | 端口被占 → `ss -tlnp` 查占用进程 `kill` 或改端口（同 RB-03）|
-| 登录提示错误号仍提示错误号 | 应用层 | 用 `ehr地址/common.do?e=错误号` 浏览器直查详情（xzl 03 §3.3）；仍循环=错误号映射未刷新，清缓存/重启应用 |
+| `mac地址不合法：xx-xx…` / `ip地址不合法：x.x.x.x` | 授权绑定（MAC/IP 变更） | 服务器 MAC/IP 改变或做过迁移→license 绑旧地址。**提交单位信息 + 提示的 mac/ip 给 license 生产管理员重新绑定新地址**→ 重启应用（见 RB-02） |
+| `authCode不合法：xxx-xxx-xxx-xxx` | 授权码错 | 更新后 cfg.properties 被覆盖致授权码错：①有运维→查运维机 dhr 目录 cfg.properties 授权码，更正后重跑一键更新；②无运维→查 `/usr/local/` 与 `/usr/local/dhr/config` 下 cfg.properties，更正后重启；③软加密文件→联系服务运维中心确认单位是否正确，重生成替换后重启 |
+| `程序不支持降级` | 版本回退 | 用低于现有版本的 war 更新（运维不通外网/无运维常见）：①有运维不通外网→下最新 war 放运维机 dhr 文件夹（默认 D:\dhr）跑 updateEHR；②无运维→下最新 war 传 `/usr/local` 跑 `deployDHR.sh`（RB-18 路径A） |
+| `产品升级时间已到期` | license 有效期 | 对应单位 license 到期校验不过：商务确认延期时长→提交单位信息给服务支持部/服务运维中心延期→重启应用 |
+| `UnknownHostException: license.x-dhr.com` / `获取license失败：license.x-dhr.com` | 网络/出网白名单 | 应用需在线校验授权码+依赖生产系统：**开放应用服务器访问 `https://license.x-dhr.com` 与 `https://www.x-dhr.com`** → 重启（见 RB-21） |
+| `Keystore was tampered with, or password was incorrect` | 证书/SSL | 证书名或密码错致 Spring Boot 失败：①查 `config/tomcat.properties` 证书名/密码 ②查证书存放路径下证书是否存在且一致 ③查 tomcat.properties 是否被覆盖（有运维查运维机 dhr 目录、无运维查 `/usr/local` 下）比对 ④均无差异则联系管理员重新下载证书配置（RB-19） |
+| `地址已在使用`（Address already in use） | 服务层/端口 | 端口被占：换其他端口启动；查占用 `ss -anltp \| grep <端口>` / `lsof -i:<端口>`（同 RB-03） |
+| `FATAL: could not open shared memory segment "/PostgreSQL.xxxxxx": No such file or directory` | 数据层/systemd | PG 共享缓存被删（systemd `RemoveIPC=yes` 清用户 shm）：①`vi /etc/systemd/logind.conf` 设 `RemoveIPC=no` ②`systemctl restart systemd-logind` ③重启 postgre ④重启应用 |
+| squid 代理取 `X-Forwarded-For` 为空/配错 | 网络/代理 | 做过 squid 代理的客户：在 cfg.properties 增 `http.license.proxyHost/Port`、`http.proxyHost/Port`（填代理 IP/端口），有运维改运维机 dhr 目录+应用 `/usr/local` 与 `/usr/local/dhr/config`、无运维改应用两处→重启 |
+| 登录提示错误号仍循环 | 应用层/数据库 | 进程在但连不上库=数据库挂了：①`ps aux \| grep mongodb\|grep -v grep`、`ps aux \| grep postgres\|grep -v grep` 看进程 ②起对应库 ③重启应用 ④定位库挂因（自不定则起研发支持单）。有错误号优先 `ehr地址/common.do?e=<错误号>` 直查 |
+| 东方通/宝兰德临时文件缺失 | 中间件 | TongWeb 临时目录缺失/权限不足→建目录赋权给中间件运行用户。🔴 待《…临时文件缺失》原文核对 |
 
 - **通用定位**：先看 `logs/dhr.log` 报错关键词 → 对表取处置；有错误号优先 `common.do?e=` 反查。
+- **前置**：所有「改 cfg.properties / tomcat.properties / 重生成授权 / 重启」属 RB-17 高危，确认影响面后执行（yw 不自行执行未授权变更）。
 
 ### RB-17 · DHR2.0 运维黑名单（危险/禁止动作）
 - 🔴 **禁止把数据库服务暴露到外网**（Mongo/PG/金仓/达梦/巨杉）——仅限内网，防火墙只开必要端口。
@@ -147,11 +154,12 @@
   4. 传包：上传 `ehr_privatization.war` 到应用服务器 `/usr/local`
   5. 执行更新：`/usr/local/deployDHR.sh`（自动解包部署）
   6. 启应用：`cd /usr/local/dhr && sh startDHR.sh`
-- **路径B · 有运维服务器常规升级（Jenkins 一键更新）**：
-  常规版本更新（补丁 / 小版本 / 同代大版本）在**有运维服务器**环境，直接通过 Jenkins 一键更新即可，
-  **无需手动停库 / 传包 / 恢复数据 / 清理旧目录**。运维机 Jenkins 已配置连接应用与数据库服务器
-  （`http://<ip>:8080`，账号 `ehr/ehr@123`，见 RB-12）；选对应升级任务 → 执行 → 等部署完成 → 启服验证（见验证段）。
+- **路径B · 有运维服务器常规升级（Jenkins 一键更新 `updateEHR`）**：
+  常规版本更新（补丁 / 小版本 / 同代大版本）在**有运维服务器**环境，登录 Jenkins（`http://<ip>:8080`，账号 `ehr/ehr@123`，见 RB-12）→
+  执行 **EHR 视图下的 `updateEHR` 任务**（该任务已含：停应用 → 备库 → 拉新包 → 更新 → 启动）。**无需手动停库 / 传包 / 恢复 / 清理**。
+  - 不通外网版本：下载最新 `ehr_privatization.war` 放运维机 dhr 文件夹（默认 `D:\dhr`）后跑 `updateEHR`。
   - 🔴 **边界：常规升级 = Jenkins 一键**；只有 DHR1.0 → 2.0 跨代迁移才走路径C 长流程，日常升级切勿套用。
+  - ⚠️ **升级前必做**（语雀《版本更新升级》）：① 备份 mongo + pg（安装目录备份脚本）；② 备份 `/usr/local/dhr/config` 下所有 `.properties`；③ **不要重复执行更新**，有问题先看 `logs/dhr.log`；④ 低版本升 `8.04.01+` 且库中有含 `number` 字段的视图 → 先备份保存视图 SQL、删视图再升级。
 - **路径C · DHR1.0 → 2.0 跨代迁移（仅此场景，非日常升级）**：
   - ⚠️ **此流程只适用 dhr1.0 升级到 2.0 的跨代迁移，不适用于常规升级**（常规升级见路径B）。
   - 长流程（基于 2023 版实施文档）：老版先 Jenkins 一键升过渡版 → 停应用 → 备库 → 停 mongo/pg → 传 `dhr2.0` 包 →
@@ -163,7 +171,7 @@
   - `tomcat.properties`：端口 + 证书（HTTPS 证书配置见 RB-19；证书类型 tomcat/pfx，单端口限制）
   - `sms.properties`：短信平台（非我方容联须改）
   - `cfg` 个性化中文：转 Unicode 编码
-  - 出网白名单：应用须可达 `license.x-dhr.com` + `www.x-dhr.com`（见语雀《白名单说明》🔴 待核对；原理见 RB-10 分层定位）
+  - 出网白名单：应用须可达 `license.x-dhr.com` + `www.x-dhr.com`（见 RB-21；原理见 RB-10 分层定位）
   - 信创无运维升级差异见语雀《信创环境无运维升级》🔴 待核对（栈差异见 RB-14）
 - **验证**：升级后登录页版本号=目标版；`ps -ef | grep -E 'dhr|mongod|postgres'` 进程在；
   `tail -200f logs/dhr.log` 无新错；业务可正常登录操作（同 RB-11 验证三件套）。
@@ -202,6 +210,22 @@
   - 证书类型须与 `key-store-type` 一致（客户给 pfx↔PKCS12、给 jks↔JKS），否则启动报 SSL 配置错。
   - 证书过期 → 由客户提供新证书替换原文件后重启应用（RB-11）；勿自行生成或转换。
   - 改 `tomcat.properties`/`cfg.properties` 属危险变更（列 RB-17 高危清单），确认影响面后执行；有 Nginx 代理走 Nginx 侧。
+
+### RB-20 · 服务进程及日志查询（速查）
+> 🔴 待《dhr2.0服务进程及日志查询》原文补全（本次批次未含；版本更新升级 doc 引用此文档）。
+- **进程**：`ps -ef | grep -E 'dhr|mongod|postgres'`（PG 另可 `ps aux | grep postgres | grep -v grep`）。
+- **日志**：应用 `logs/dhr.log`（`tail -300/-500` 看关键报错）；PG logfile `/usr/local/ehr/postgresql15/logfile`。
+- **端口**：`ss -tlnp` 查监听；错误号反查 `ehr地址/common.do?e=<错误号>`。
+- 启动报错对表见 RB-16；定位后处置走对应 RB。
+
+### RB-21 · 应用出网白名单（license / 生产系统）
+- **触发**：启动报 `UnknownHostException: license.x-dhr.com` 或 `获取license失败：license.x-dhr.com`（Caused by: ...BizException）。
+- **根因**：应用启动需在线校验授权码 + 某些模块依赖生产系统，应用服务器须能出网到以下地址（语雀原文）。
+- **标准处置**：开放应用服务器访问以下两个地址后重启应用：
+  - `https://license.x-dhr.com`
+  - `https://www.x-dhr.com`
+- **验证**：`curl -sv https://license.x-dhr.com` 可达（握手/200）；重启后 `logs/dhr.log` 无 UnknownHost/获取license失败。
+- **坑**：仅**应用服务器**需出网（数据库严禁外网，RB-17）；若客户走 squid 代理，还需在 cfg.properties 配 `http.license.proxyHost/Port`（见 RB-16 squid 行）。
 
 ---
 
