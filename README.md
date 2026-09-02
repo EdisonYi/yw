@@ -2,25 +2,35 @@
 
 > 一个务实的「环境运维工程师」人格 Skill，触发名 `/yw`。负责运维工作的**分诊 → 观测 → 定位 → 处置 → 验证 → 记录**，并在每次任务后把工作内容持续追加进 `work-log.md`，重复问题沉淀为 `runbook.md`。
 
-[![GitHub](https://img.shields.io/badge/repo-EdisonYi%2Fyw--skill-blue)](https://github.com/EdisonYi/yw-skill)
+[![GitHub](https://img.shields.io/badge/repo-EdisonYi%2Fyw-blue)](https://github.com/EdisonYi/yw)
 
 ---
 
 ## 一句话部署（agent 友好）
 
-任意装了 WorkBuddy 的机器，一条命令完成部署，**无需手动配环境、无需分步操作**：
+**方式一 · WorkBuddy 原生（最推荐，单条命令）**
+
+在 WorkBuddy 对话里直接说：
+
+```
+/install-github-skill https://github.com/EdisonYi/yw.git
+```
+
+装完**重启一次 WorkBuddy 会话**，`/yw` 即可触发。
+
+**方式二 · 一行 bash（无需 WorkBuddy 专用技能）**
 
 ```bash
-git clone https://github.com/EdisonYi/yw-skill.git && bash yw-skill/deploy.sh
+git clone https://github.com/EdisonYi/yw.git && bash yw/deploy.sh
 ```
 
 PowerShell 用户：
 
 ```powershell
-git clone https://github.com/EdisonYi/yw-skill.git; powershell -ExecutionPolicy Bypass -File yw-skill/deploy.ps1
+git clone https://github.com/EdisonYi/yw.git; powershell -ExecutionPolicy Bypass -File yw/deploy.ps1
 ```
 
-部署脚本会把 `yw/` 目录整体复制到 WorkBuddy 用户级 skills 目录（`~/.workbuddy/skills/yw/`），部署完即可在对话里用 `/yw` 触发，**无需重启**。
+部署脚本会把 `SKILL.md` + `references/` 复制到用户级 skills 目录（`~/.workbuddy/skills/yw/`），部署完即可用 `/yw` 触发，**无需重启**。
 
 ---
 
@@ -42,27 +52,27 @@ git clone https://github.com/EdisonYi/yw-skill.git; powershell -ExecutionPolicy 
 ## 仓库结构
 
 ```
-yw-skill/
-├── README.md          # 本文
-├── deploy.sh          # 一键部署（bash / Git Bash / Linux / macOS）
-├── deploy.ps1         # 一键部署（PowerShell / Windows）
-└── yw/                # Skill 本体（直接对应 ~/.workbuddy/skills/yw/）
-    ├── SKILL.md       # 角色定义 + Agentic Protocol + 心智模型 + 诚实边界
-    └── references/
-        ├── work-log.md  # 运维工作日志（持续累积）
-        └── runbook.md   # 可复用 playbook（重复问题沉淀）
+yw/                      # 本仓库即 skill 根目录（开放 Agent Skills 协议布局）
+├── README.md            # 本文
+├── deploy.sh            # 一键部署（bash / Git Bash / Linux / macOS）
+├── deploy.ps1           # 一键部署（PowerShell / Windows）
+├── SKILL.md             # 角色定义 + Agentic Protocol + 心智模型 + 诚实边界
+└── references/
+    ├── work-log.md      # 运维工作日志（持续累积）
+    └── runbook.md       # 可复用 playbook（重复问题沉淀）
 ```
+
+> 仓库根目录就是 skill 根目录，因此也能直接被 `/install-github-skill` 识别安装。
 
 ---
 
 ## 手动部署（等价于脚本）
 
 ```bash
-# 1. 复制本体到用户级 skills 目录
 mkdir -p ~/.workbuddy/skills/yw
-cp -r yw/. ~/.workbuddy/skills/yw/
-
-# 2. 完成。对话中输入 /yw 即可触发
+cp SKILL.md ~/.workbuddy/skills/yw/SKILL.md
+cp -r references ~/.workbuddy/skills/yw/references
+# 完成。对话中输入 /yw 即可触发
 ```
 
 > 部署目标可通过环境变量 `WORKBUDDY_SKILLS` 覆盖（指向你的 skills 根目录）。
