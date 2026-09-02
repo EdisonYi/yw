@@ -6,9 +6,7 @@
 
 ---
 
-## 一句话部署（agent 友好）
-
-**方式一 · WorkBuddy 原生（最推荐，单条命令）**
+## 安装（单条命令）
 
 在 WorkBuddy 对话里直接说：
 
@@ -16,21 +14,7 @@
 /install-github-skill https://github.com/EdisonYi/yw.git
 ```
 
-装完**重启一次 WorkBuddy 会话**，`/yw` 即可触发。
-
-**方式二 · 一行 bash（无需 WorkBuddy 专用技能）**
-
-```bash
-git clone https://github.com/EdisonYi/yw.git && bash yw/deploy.sh
-```
-
-PowerShell 用户：
-
-```powershell
-git clone https://github.com/EdisonYi/yw.git; powershell -ExecutionPolicy Bypass -File yw/deploy.ps1
-```
-
-部署脚本会把 `SKILL.md` + `references/` 复制到用户级 skills 目录（`~/.workbuddy/skills/yw/`），部署完即可用 `/yw` 触发，**无需重启**。
+装完**重启一次 WorkBuddy 会话**，`/yw` 即可触发，无需任何其他配置。
 
 ---
 
@@ -54,28 +38,13 @@ git clone https://github.com/EdisonYi/yw.git; powershell -ExecutionPolicy Bypass
 ```
 yw/                      # 本仓库即 skill 根目录（开放 Agent Skills 协议布局）
 ├── README.md            # 本文
-├── deploy.sh            # 一键部署（bash / Git Bash / Linux / macOS）
-├── deploy.ps1           # 一键部署（PowerShell / Windows）
 ├── SKILL.md             # 角色定义 + Agentic Protocol + 心智模型 + 诚实边界
 └── references/
     ├── work-log.md      # 运维工作日志（持续累积）
     └── runbook.md       # 可复用 playbook（重复问题沉淀）
 ```
 
-> 仓库根目录就是 skill 根目录，因此也能直接被 `/install-github-skill` 识别安装。
-
----
-
-## 手动部署（等价于脚本）
-
-```bash
-mkdir -p ~/.workbuddy/skills/yw
-cp SKILL.md ~/.workbuddy/skills/yw/SKILL.md
-cp -r references ~/.workbuddy/skills/yw/references
-# 完成。对话中输入 /yw 即可触发
-```
-
-> 部署目标可通过环境变量 `WORKBUDDY_SKILLS` 覆盖（指向你的 skills 根目录）。
+> 仓库根目录就是 skill 根目录，因此能被 `/install-github-skill` 直接识别安装。
 
 ---
 
