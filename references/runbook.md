@@ -72,6 +72,11 @@
 - **Jenkins 自动备份**：运维服务器（Windows）Jenkins 每天 **2 点备 PG、3 点备 Mongo**，经 FTP 拉到 Jenkins 机，
   存最近 7 天压缩包。Jenkins `http://<ip>:8080`，账号 `ehr/ehr@123`。
 - **🔴 红线**：数据库**严禁外网访问**；备份须同时拷到多台服务器（异地存储），否则磁盘损坏数据全丢用户自负。
+- **还原（🔴 变更型 · 须确认影响面后执行）**（来源《dhr2.0备份数据还原》）：
+  - **MongoDB 还原**（mongodb6 `/usr/local/ehr/mongodb6` / mongodb8 `/usr/local/ehr/mongodb8`）：① 备份文件拷到对应 `data_bak`（格式 `ehr_YYYYMMDDhhmmss.tar.gz`）② `cd data_bak && tar xf *.tar.gz` ③ `../bin/mongorestore -h 127.0.0.1:27011 -u ehr -p <pwd> -d ehr --drop ./ehr_data/ehr --gzip`（端口 27011、库 ehr、用户 ehr；`<pwd>` 占位不固化明文）。
+  - **PostgreSQL15 还原**（库 `dbehr`、端口 5632、账号 postgres）：① 备份文件拷到 `/usr/local/ehr/postgresql15/data_bak` ② `cd data_bak` ③ `../bin/pg_restore -U postgres -p 5632 -h 127.0.0.1 -d dbehr -c *.tar`。
+  - **信创数据库还原**：金仓/达梦/巨杉/迪欧西等还原联系对应厂商确认命令（yw 不臆测信创库语法）。
+  - **坑**：还原会覆盖现有数据（`--drop`/`-c`），须先确认已备当前数据；还原后重启应用（RB-11）验证。
 
 ### RB-13 · Redis7 部署与运维（可选缓存）
 - **前置**：`yum install -y gcc`
@@ -110,9 +115,10 @@
   数据库防火墙开 27011/54321(金仓)/5236(达梦)，web 开 80/443，ES 开 9203；时间须校准（`timedatectl`/ntpdate）。
 
 ### RB-16 · 启动报错排查矩阵（DHR2.0 启动错误 · 语雀原文补全）
-> 来源（语雀导出系列，2026-09-02 本机补全）：mac/ip地址不合法、authCode不合法、程序不支持降级、
+> 来源（语雀导出系列，2026-09-02 本机补全，分批）：①首批 mac/ip地址不合法、authCode不合法、程序不支持降级、
 > 产品升级时间已到期、UnknownHostException license.x-dhr.com、获取license失败 license.x-dhr.com、
-> Keystore密码错、地址已在使用、PG共享缓存被删、squid代理配置、登录提示错误号循环、启动postgre注意事项。
+> Keystore密码错、地址已在使用、PG共享缓存被删、squid代理配置、登录提示错误号循环、启动postgre注意事项；
+> ②次批 备份数据还原、信创环境无运维升级、东方通临时文件缺失(NoSuchFileException)、服务进程及日志查询、智多薪菜单非法请求ip。
 > 应用默认路径 `/usr/local/dhr`，日志 `logs/dhr.log`（`tail -300/-500` 看关键报错）。
 
 | 报错关键词（Caused by / 提示） | 根因分层 | 标准处置（语雀原文） |
@@ -127,7 +133,7 @@
 | `FATAL: could not open shared memory segment "/PostgreSQL.xxxxxx": No such file or directory` | 数据层/systemd | PG 共享缓存被删（systemd `RemoveIPC=yes` 清用户 shm）：①`vi /etc/systemd/logind.conf` 设 `RemoveIPC=no` ②`systemctl restart systemd-logind` ③重启 postgre ④重启应用 |
 | squid 代理取 `X-Forwarded-For` 为空/配错 | 网络/代理 | 做过 squid 代理的客户：在 cfg.properties 增 `http.license.proxyHost/Port`、`http.proxyHost/Port`（填代理 IP/端口），有运维改运维机 dhr 目录+应用 `/usr/local` 与 `/usr/local/dhr/config`、无运维改应用两处→重启 |
 | 登录提示错误号仍循环 | 应用层/数据库 | 进程在但连不上库=数据库挂了：①`ps aux \| grep mongodb\|grep -v grep`、`ps aux \| grep postgres\|grep -v grep` 看进程 ②起对应库 ③重启应用 ④定位库挂因（自不定则起研发支持单）。有错误号优先 `ehr地址/common.do?e=<错误号>` 直查 |
-| 东方通/宝兰德临时文件缺失 | 中间件 | TongWeb 临时目录缺失/权限不足→建目录赋权给中间件运行用户。🔴 待《…临时文件缺失》原文核对 |
+| 东方通/宝兰德临时文件缺失（`NoSuchFileException: /tmp/tongweb.../work/TongWeb/localhost/ROOT`） | 中间件 | TongWeb 临时文件默认生成到 `/tmp` 被 OS 定期清理→访问某些页面报「出错啦，请稍后再试」。**改 `tongweb.properties` 加 `server.tongweb.basedir=./temp`**（有运维：运维机 dhr 目录+应用 `/usr/local`+`/usr/local/dhr/config`；无运维：应用 `/usr/local`+`/usr/local/dhr/config`）→ 重启应用（见 RB-14 信创坑） |
 
 - **通用定位**：先看 `logs/dhr.log` 报错关键词 → 对表取处置；有错误号优先 `common.do?e=` 反查。
 - **前置**：所有「改 cfg.properties / tomcat.properties / 重生成授权 / 重启」属 RB-17 高危，确认影响面后执行（yw 不自行执行未授权变更）。
@@ -172,14 +178,14 @@
   - `sms.properties`：短信平台（非我方容联须改）
   - `cfg` 个性化中文：转 Unicode 编码
   - 出网白名单：应用须可达 `license.x-dhr.com` + `www.x-dhr.com`（见 RB-21；原理见 RB-10 分层定位）
-  - 信创无运维升级差异见语雀《信创环境无运维升级》🔴 待核对（栈差异见 RB-14）
+  - **信创无运维升级**（来源《dhr2.0信创环境无运维服务器升级步骤》）：即路径A 变体——①下载对应中间件 war：东方通 `ehr_tongweb.war` / 宝兰德 `ehr_bes.war` / 金蝶 `ehr_aas.war` 传 `/usr/local` ②数据库备份：PG/mongo 同路径A；**信创库（金仓/达梦）与信创文档库（巨杉/迪欧西）备份须联系厂商确认命令** ③更新前**备份配置**到 `/tmp/properties`date +%Y%m%d``（cp `/usr/local/dhr/config/*` 过去）④`/usr/local/deployDHR.sh` → 启应用 → `tail -300f logs/dhr.log` 验证。栈差异见 RB-14。
 - **验证**：升级后登录页版本号=目标版；`ps -ef | grep -E 'dhr|mongod|postgres'` 进程在；
   `tail -200f logs/dhr.log` 无新错；业务可正常登录操作（同 RB-11 验证三件套）。
 - **坑**：
   - 升级须停服窗口期；**备库是红线**（RB-12），未备库禁止删旧目录。
   - 大版本升级可能改数据库密码/路径，按实施文档同步 `cfg` 连接串。
   - 用横石/BI 的客户：升级后 `mongoBI` 需重启、横石数据源 BI 密码需改（遗留项）。
-  - 菜单提示「非法请求 ip / ip 地址不合法」→ 见 RB-02（授权绑定两层）+ 语雀《非法请求ip》🔴 待核对。
+  - 菜单提示「非法请求 ip / ip 地址不合法」→ 属运行时开放平台 IP 白名单问题，见 **RB-22**（与 RB-02 启动授权 mac/ip 不合法不同）。
 
 ### RB-19 · Tomcat 证书配置（HTTPS / SSL，变更型 · 须确认后执行）
 - **来源**：语雀《dhr2.0 Tomcat证书配置操作说明》（2026-09-02 用户提供导出）；此前 🔴 项已核对补全。
@@ -212,9 +218,10 @@
   - 改 `tomcat.properties`/`cfg.properties` 属危险变更（列 RB-17 高危清单），确认影响面后执行；有 Nginx 代理走 Nginx 侧。
 
 ### RB-20 · 服务进程及日志查询（速查）
-> 🔴 待《dhr2.0服务进程及日志查询》原文补全（本次批次未含；版本更新升级 doc 引用此文档）。
-- **进程**：`ps -ef | grep -E 'dhr|mongod|postgres'`（PG 另可 `ps aux | grep postgres | grep -v grep`）。
-- **日志**：应用 `logs/dhr.log`（`tail -300/-500` 看关键报错）；PG logfile `/usr/local/ehr/postgresql15/logfile`。
+- **来源**：语雀《dhr2.0服务进程及日志查询》（2026-09-02 用户提供导出）；此前 🔴 已补全。
+- **进程查询**：`ps aux | grep dhr`（应用 Java 进程；PG/mongo 见 RB-16 矩阵）。
+- **实时日志**：`tail -300f /usr/local/dhr/logs/dhr.log`（持续输出，Ctrl+C 退出）。
+- **历史日志**：按日滚动命名 `dhr.log.xxxx-xx-xx.0.gz`；解压查看 `gzip -d dhr.log.xxxx-xx-xx.0.gz`。
 - **端口**：`ss -tlnp` 查监听；错误号反查 `ehr地址/common.do?e=<错误号>`。
 - 启动报错对表见 RB-16；定位后处置走对应 RB。
 
@@ -226,6 +233,16 @@
   - `https://www.x-dhr.com`
 - **验证**：`curl -sv https://license.x-dhr.com` 可达（握手/200）；重启后 `logs/dhr.log` 无 UnknownHost/获取license失败。
 - **坑**：仅**应用服务器**需出网（数据库严禁外网，RB-17）；若客户走 squid 代理，还需在 cfg.properties 配 `http.license.proxyHost/Port`（见 RB-16 squid 行）。
+
+### RB-22 · 运行时「非法请求 ip / ip 地址不合法」（智多薪菜单 · 应用层白名单）
+- **来源**：语雀《dhr2.0进入智多薪菜单提示：非法请求ip、ip地址不合法》（2026-09-02 用户提供导出）。
+- **现象**：**进入智多薪菜单**时提示「非法请求 ip、ip 地址不合法」。**区别于 RB-02**：RB-02 是应用**启动**时授权 mac/ip 不合法（须重绑 license）；本 RB 是**运行时**智多薪开放平台 IP 白名单未含当前访问 IP。
+- **标准处置（分层）**：
+  - **公有云客户**：登录 ehr → 系统设置 → 开放平台 → 开放平台信息 → **增加当前 IP**。
+  - **私有云客户**（二选一）：① 进 postgres 库表 `ours_account_enterprise`，在 `dev_ip` 字段加当前 IP（多个英文逗号隔开）→ **重启应用生效**；② 或走 ehr 开放平台信息加 IP（同公有云）。
+  - **私有云提示「获取 license 失败：ip 地址不合法」**（与 license 相关）：将报错单位 + 提示显示 IP 发给**薪事力生产系统管理员**处理（同 RB-02 重绑逻辑）。
+- **验证**：加 IP 并重启（私有云走 dev_ip 须重启）后，智多薪菜单可正常进入。
+- **坑**：私有云改 `dev_ip` 必须重启应用才生效；公有云开放平台加 IP 一般实时。与 RB-02 勿混淆——RB-02 启动期报 mac/ip 不合法是 license 绑定旧地址，本 RB 是运行时菜单 IP 白名单。
 
 ---
 
