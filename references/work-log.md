@@ -204,6 +204,20 @@
 - 验证: Grep 确认 RB-23 / 无运维服务器定时备份 / crontab 已落位；SKILL 7660B(<9820 红线)；runbook 体积增长可控；本回同步确认 SKILL/runbook 已无"容器"字样（17:01 清理；work-log 仅变更记录行提及"容器"二字，非部署内容）
 - 推送: 17:11 经 GitHub Contents API 合并推送 Options B（前两轮回合，不含待补三篇）→ SKILL.md@ddfce76 / runbook.md@63e84ef / work-log.md@3cfce76（远程 main 由 16:51 前进）
 
+## 2026-09-02 17:19 · 变更：语雀第四批 3 篇补全 yw（darwin 把关）
+- 类型: 变更（知识补全；darwin 2.0 把关：先备份/最小完整变更/一致性/体积复核）
+- 来源: 用户提供 Downloads 下 3 篇语雀导出 md（cfg.properties 其他项配置项说明 / 屏蔽登录页面配置 / 私有化初始部署速览）
+- 备份: runbook.md.bak.20260902-1719 + SKILL.md.bak.20260902-1719
+- 处置:
+  - 新增 RB-24 cfg.properties 配置项: SSRF Host 黑白名单(ours.host.blocked/allowed、通配符、黑名单优先、默认放行) / 文件(file.allowOuterUpload/allowTypes/checkPDF/checkPreviewPDF/allowDeleteDiskFile) / 安全响应头(ours.security.hosts + CSP 等, 谨慎配) / 限制请求方法 / 单设备登录(login.duplicate) / 登录失败锁定(login.limitLoginTimeout) / 预置默认密码(product.defaultPassword) ；均重启生效、属 RB-17 高危
+  - 新增 RB-25 屏蔽登录页面: cfg.properties 加 `product.disableLogin=true` + 有/无运维覆盖路径差异 + 重启
+  - 新增 RB-26 私有化初始部署速览: 双库架构(PG15基础/Mongo8业务) / 信创明细索引 / 服务器配置(>3000人等推高配, 运维服务器普通PC) / 环境检查清单(磁盘·时间·网络 license.x-dhr.com·svn·端口 27011/5632/80-443 普通用户不可用1024下) / 部署手册索引 / 高频问题索引(RB-16)
+  - 回写 RB-14 信创明细: 订正中创版本(V0.0.3.3→InforSuite AS V10.0.3.3)、补海量 Vastbase G100 V2.2 / 达梦 V8 7000c+3.100 / 非关系库 DocDB 迪欧西 V3.4(取代巨杉)
+  - 回写 RB-15 备注: >3000人/全员考勤/批量算薪→高配; 运维服务器普通PC
+  - SKILL.md 路由 RB-10~RB-23→RB-10~RB-26（两处）+ 调研来源补第四批 3 篇
+- 验证: Grep 确认 RB-24/25/26 落位、RB-14 信创明细(中创 InforSuite/海量 Vastbase/DocDB)、SKILL RB-10~RB-26；runbook 29390B→35452B、SKILL 7660B→8028B(<9820 红线)；SKILL/runbook 无"容器"字样
+- 推送: 17:22 经 GitHub Contents API 合并推送三件(SKILL.md / runbook.md / work-log.md)→ 远程 main 由 17:11 推送态前进，覆盖 RB-24~26 + RB-14/15 回写
+
 ## 2026-09-02 16:55 · 咨询：ip地址不合法（@skill:yw）
 - 类型: 咨询（现象型，分诊复用 RB-02 / RB-22）
 - 现象: 用户报「ip地址不合法」（未给场景，需先判启动期 vs 运行时）
