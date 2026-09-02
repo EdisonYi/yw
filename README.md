@@ -39,12 +39,16 @@
 yw/                      # 本仓库即 skill 根目录（开放 Agent Skills 协议布局）
 ├── README.md            # 本文
 ├── SKILL.md             # 角色定义 + Agentic Protocol + 心智模型 + 诚实边界
+├── deploy.sh            # 一键部署到 WorkBuddy skills 目录（bash / Git Bash / Linux / macOS）
+├── deploy.ps1           # 一键部署（Windows PowerShell）
 └── references/
     ├── work-log.md      # 运维工作日志（持续累积）
-    └── runbook.md       # 可复用 playbook（重复问题沉淀）
+    ├── runbook.md       # 可复用 playbook（重复问题沉淀，RB-10~RB-26）
+    └── sources-index.md # 知识来源索引（官方/语雀文档溯源，不纳入二进制）
 ```
 
 > 仓库根目录就是 skill 根目录，因此能被 `/install-github-skill` 直接识别安装。
+> `deploy.sh` / `deploy.ps1` 仅用于将本仓库同步到本地 skills 目录（开发者工具，不参与 skill 运行时）；`references/sources-index.md` 为知识溯源，安装后亦不影响触发。
 
 ---
 
