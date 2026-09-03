@@ -1,6 +1,6 @@
 # yw 知识来源索引（sources-index）
 
-> 本 Skill 的 `runbook.md`（RB-10~RB-26）与 `work-log.md` 提炼自下列**官方部署文档**与**语雀导出的运维知识**。
+> 本 Skill 的 `runbook.md`（RB-10~RB-28）与 `work-log.md` 提炼自下列**官方部署文档**与**语雀导出的运维知识**。
 > 原始文件存于用户本机 `Downloads/`，**不纳入本仓库版本管理**（避免 PDF/DOCX 二进制膨胀）；此处仅做溯源归类，便于回溯与补证。
 > 最后整理：2026-09-02（darwin-skill 归类整理批次）。
 
@@ -27,6 +27,12 @@
 - `cfg.properties 其他项配置项说明.md`
 - `dhr2.0屏蔽登录页面配置.md`
 - `dhr2.0私有化初始部署速览.md`
+
+### 五批（数据库部署 / 无运维完整部署）→ RB-27、RB-28
+- `dhr2.0不同适配的操作系统下MongoDB8数据库部署.md`
+- `dhr2.0-PostgreSQL15数据库部署.md`
+- `dhr2.0无运维服务器部署手册.md`
+- 涵盖：OS/CPU 架构适配矩阵（x86 须 AVX）/ 部署包与 `deployMongoDB.sh`·`deployPostgreSQL.sh`·`deployWeb.sh` 脚本 / 在线·离线两种安装 / fontconfig 依赖 / 软加密（输入 n）/ `init_PostgreSQL_Index.sql` 预置索引 / `/tmp/install.log` 排错
 
 ## 二、官方部署文档（DHR2.0 私有化）
 - `dhr2.0-EHR私有化部署文档 for Ubuntu20.04系统.md / .pdf / .docx`
