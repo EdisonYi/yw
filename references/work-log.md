@@ -364,3 +364,13 @@
   - RB-28 步骤 7：加 🔴 标记，强调"须先确认 dhr 应用服务已正常启动后再执行"预置索引脚本（应用未起全易致数据/索引不一致）
 - 验证: RB-28 步骤 6/7 衔接明确；与"验证"段三项校验项一致；runbook 体积未触发红线
 - 待跟进: 是否推 GitHub
+
+- 2026-09-03 16:45 · 优化项（用户澄清）：数据库服务器必须支持 AVX，mongodb/巨杉/迪欧西 不支持则无法启动
+- 现象: 用户指出部署前置须明确"数据库服务器必须支持 AVX 指令集"，原 yw 仅 MongoDB8/MongoDB6 写了 AVX 要求，未覆盖巨杉 SequoiaDB / 迪欧西 DocDB
+- 处置:
+  - RB-15 红线新增 bullet：🔴 数据库服务器必须支持 AVX（`grep avx /proc/cpuinfo` 须有输出），不支持则 MongoDB8/巨杉/迪欧西 均无法启动，部署前先校验 CPU（引 RB-27）
+  - RB-27 CPU 段：否则 MongoDB8 装不上 → 否则 MongoDB8/巨杉 SequoiaDB/迪欧西 DocDB 均无法启动
+  - RB-27 坑 ②：x86 无 AVX → Mongo8 跑不起来 → MongoDB8/巨杉 SequoiaDB/迪欧西 DocDB 跑不起来
+  - RB-30 坑 ③（Mongo6 场景专属）保持，不强行扩展
+- 验证: AVX 适用范围从"仅 MongoDB"扩展到"MongoDB8/巨杉/迪欧西"三库；RB-15 红线新增 🔴 前置；runbook 体积未触发红线
+- 状态: 已推 GitHub（部署到目标环境 EdisonYi/yw main）
