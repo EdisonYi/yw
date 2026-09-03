@@ -2,7 +2,7 @@
 
 > 本 Skill 的 `runbook.md`（RB-10~RB-40）与 `work-log.md` 提炼自下列**官方部署文档**与**语雀导出的运维知识**。
 > 原始文件存于用户本机 `Downloads/`，**不纳入本仓库版本管理**（避免 PDF/DOCX 二进制膨胀）；此处仅做溯源归类，便于回溯与补证。
-> 最后整理：2026-09-03（第七批调整：nginx 拆分三条 RB、SHA1 密文入库、删除 ES；RB-29~RB-40）。
+> 最后整理：2026-09-03（七批：无运维服务器升级步骤 → 回写 RB-18 路径A 备份配置文件步骤；RB-10~RB-40）。
 
 ## 一、语雀导出 · 运维知识（playbook 直接来源）
 
@@ -48,6 +48,10 @@
 - `dhr2.0查看数据库数据文件大小、统计表数量.md`
 - `dhr2.0服务器上使用startDHR.sh启动应用提示dhr.war process is running..md`
 - `dhr2.0-EHR私有化集群部署文档.md`
+
+### 七批（无运维服务器升级步骤）→ 回写 RB-18 路径A
+- `dhr2.0无运维服务器升级步骤.md`
+- 涵盖：无运维升级 6 步（停服 → 备 PG → 备 mongo6/8 → 传包 → 备份配置文件 → deployDHR.sh → 启服）；补 mongodb8 备份脚本路径；备份配置文件 `mkdir -p /tmp/properties`date +%Y%m%d`` + `cp -r /usr/local/dhr/config/*`
 
 ## 二、官方部署文档（DHR2.0 私有化）
 - `dhr2.0-EHR私有化部署文档 for Ubuntu20.04系统.md / .pdf / .docx`
