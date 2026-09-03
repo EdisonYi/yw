@@ -51,7 +51,7 @@ description: >-
 - **现象锚点**：报错原文 / 错误号 / 状态码 / 时间点；能复现吗？
 - **可达性探测**：`curl -sv <host>:<port>/health`、端口 `ss -tlnp`、`ps -ef | grep <svc>`。
 - **日志**：定位日志路径后按时间点 + 线程号顺藤摸瓜（如 `ctp.log` / `error.log` / `application.log`）。
-- **DHR2.0 私有化**：涉及薪事力私有化时，先读 `references/runbook.md` 的 RB-10~RB-28（服务路径/启停顺序/备份与还原/无运维定时备份/Redis7/信创/服务器配置/启动报错矩阵/升级流程/Tomcat 证书配置/端口修改/进程日志查询/出网白名单/运行时非法请求ip/cfg.properties 配置项/屏蔽登录页面/私有化初始部署速览/数据库部署OS架构适配/无运维服务器完整部署流程），对齐文档描述再动手。
+- **DHR2.0 私有化**：涉及薪事力私有化时，先读 `references/runbook.md` 的 RB-10~RB-38（服务路径/启停顺序/备份与还原/无运维定时备份/Redis7/信创/服务器配置/启动报错矩阵/升级流程/Tomcat 证书配置/端口修改/进程日志查询/出网白名单/运行时非法请求ip/cfg.properties 配置项/屏蔽登录页面/私有化初始部署速览/数据库部署OS架构适配/无运维服务器完整部署流程/limit.properties 限定量/MongoDB6集群/文案国际化替换/nginx反向代理/微信服务号/数据库改密码/页面NoSuchFileException/金仓备份还原/库文件大小统计/集群部署），对齐文档描述再动手。
 
 ### Step 3: 分层定位（按概率）
 
@@ -122,5 +122,5 @@ description: >-
 
 - 角色方法论：运维工程通用实践（观测→定位→处置→验证→沉淀）+ 本工作区既有运维经验
   （git/GitHub 推送网络环境、私有化部署与软加密、license MAC/IP 绑定、CTP 日志排障，见 xzl 技能）。
-- DHR2.0 私有化运维知识：基于本机 `ehr私有化部署/dhr2.0` 系列文档（基础信息/数据操作说明/Redis7部署/信创支持明细/服务器中高配置）+ 语雀导出系列：①首批（启动报错关键信息 mac/ip·authCode·不支持降级·升级到期·UnknownHost/获取license失败·Keystore·地址已在使用·PG共享缓存·squid代理·登录错误号·postgre启动说明 / 版本更新升级 / Tomcat证书配置）②次批（备份数据还原 / 信创环境无运维升级 / 东方通临时文件缺失NoSuchFileException / 服务进程及日志查询 / 智多薪菜单非法请求ip）③三批（无运维服务器定时备份 / Tomcat端口修改）提炼进 runbook RB-10~RB-23。④四批（cfg.properties 其他项配置项说明 / 屏蔽登录页面配置 / 私有化初始部署速览）提炼进 runbook RB-24~RB-26，并回写 RB-14 信创明细、RB-15 高配备注。⑤五批（MongoDB8 数据库部署 / PostgreSQL15 数据库部署 / 无运维服务器部署手册）提炼进 runbook RB-27~RB-28，并回写 RB-10（mongodb8 目录）、RB-26（AVX 预检与手册索引）。
+- DHR2.0 私有化运维知识：基于本机 `ehr私有化部署/dhr2.0` 系列文档（基础信息/数据操作说明/Redis7部署/信创支持明细/服务器中高配置）+ 语雀导出系列：①首批（启动报错关键信息 mac/ip·authCode·不支持降级·升级到期·UnknownHost/获取license失败·Keystore·地址已在使用·PG共享缓存·squid代理·登录错误号·postgre启动说明 / 版本更新升级 / Tomcat证书配置）②次批（备份数据还原 / 信创环境无运维升级 / 东方通临时文件缺失NoSuchFileException / 服务进程及日志查询 / 智多薪菜单非法请求ip）③三批（无运维服务器定时备份 / Tomcat端口修改）提炼进 runbook RB-10~RB-23。④四批（cfg.properties 其他项配置项说明 / 屏蔽登录页面配置 / 私有化初始部署速览）提炼进 runbook RB-24~RB-26，并回写 RB-14 信创明细、RB-15 高配备注。⑤五批（MongoDB8 数据库部署 / PostgreSQL15 数据库部署 / 无运维服务器部署手册）提炼进 runbook RB-27~RB-28，并回写 RB-10（mongodb8 目录）、RB-26（AVX 预检与手册索引）。⑥六批（limit.properties 限定量 / MongoDB6集群三节点 / 文案国际化替换 / nginx反向代理+上传413+OA下划线请求头 / 微信服务号新版 / 数据库改用户密码 / 页面NoSuchFileException / 信创人大金仓备份还原 / 数据库文件大小统计 / EHR私有化集群部署）提炼进 runbook RB-29~RB-38，并回写 RB-11（process running 坑）、RB-12（金仓还原指向 RB-36）、RB-15（集群 7 台配置）、RB-26（手册索引）。
 - 无外部人物语料；本 Skill 为**角色型**而非**人物蒸馏型**。
