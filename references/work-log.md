@@ -293,3 +293,18 @@
 - 边界: MongoDB6/PG15/Redis 出厂密码、123456 的 SHA1 密文均不写入(明文密码零写入红线)；只记端口/库名/用户，密码写"见原文档"
 - 验证: RB-29~38 落位(363-457行)；SKILL RB-10~RB-38=1；容器字样 SKILL/runbook/sources 均 0；明文密码扫描 0 命中；SKILL 9544B(<150% 红线)、runbook 41921B→55551B
 - 推送: 15:25 经 GitHub Contents API 推送 4 件 → SKILL.md@7b33c14980f3 / runbook.md@28191c4f66c3 / work-log.md@e5e15e4750d4 / sources-index.md@1e6334ac5d33（远程 main 由 09-03 10:52 态前进到 RB-10~RB-38 完成态）
+
+## 2026-09-03 15:35 · 调整 yw：nginx 拆分三条 RB + SHA1 密文入库 + 删除 ES（darwin-skill 把关）
+- 类型: 变更（知识库结构优化，非排障）
+- 现象: 用户对第六批 4 个待确认问题给出答复——① Doc7 默认密码 SHA1 密文入库 ② RB-32 合并的三篇 nginx 拆成三个独立 RB ③ RB-35 独立、RB-38 与 RB-26/28 互补 两处无需调整 ④ 删除不再需要的 ES（全文检索）内容
+- 定位: ① SHA1 密文取自本机《通过数据库设置修改管理员默认密码.docx》原文 = 123456 的 SHA1 = 7C4A8D09CA3762AF61E59520943DC26494F8941B ② RB-32 原合并《nginx反向代理参考配置》《nginx上传413》《OA表单推送失败》三篇 ③ ES 内容在 RB-15 表格"全文检索"行 + RB-15 红线"ES 开 9203" + RB-17 黑名单"全文检索必须分离"三处
+- 处置(darwin纪律: 备份 backups/*.bak.20260903-1530 → 最小变更 → 一致性校验):
+  - RB-32 拆三条独立 RB: RB-32 nginx反向代理(参考配置) / RB-33 nginx上传413(client_max_body_size) / RB-34 nginx OA下划线请求头(underscores_in_headers)
+  - 后续编号整体 +2 重排: 微信 RB-33→RB-35 / 改密码 RB-34→RB-36 / NoSuchFile RB-35→RB-37 / 金仓 RB-36→RB-38 / 统计 RB-37→RB-39 / 集群 RB-38→RB-40
+  - RB-36 改密码补 SHA1 密文 7C4A8D09CA3762AF61E59520943DC26494F8941B(123456 官方文档原文，用户明确授权入库)
+  - 删除 ES: RB-15 删"全文检索"表格行 + 红线删"ES 开 9203" + RB-17 黑名单"数据库/应用/报表/全文检索"→"数据库/应用/报表"
+  - 交叉引用回写: RB-12 金仓→RB-38 / RB-15 集群→RB-40 / RB-26 索引(集群 RB-40·微信 RB-35·金仓 RB-38) / RB-29 client_max_body_size→RB-33
+  - SKILL.md 路由 RB-10~RB-38→RB-10~RB-40 + 调研来源 nginx 拆三条 + 金仓指向 RB-38；sources-index.md RB 范围同步
+- 边界: SHA1 密文(应用账号密码哈希，非数据库出厂连接密码)经用户明确授权入库，区别于"明文密码零写入"红线(该红线针对数据库连接密码)；数据库连接密码仍未写入
+- 验证: runbook 标题 RB-10~RB-40 连续无缺；ES/9203/全文检索 runbook 0 命中(仅 BES 中间件名误匹配)；SHA1 密文 RB-36 落位；交叉引用 RB-32/33/35/38/40 一致
+- 待跟进: 推 GitHub
