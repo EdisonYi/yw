@@ -82,7 +82,7 @@
 - **还原（🔴 变更型 · 须确认影响面后执行）**（来源《dhr2.0备份数据还原》）：
   - **MongoDB 还原**（mongodb6 `/usr/local/ehr/mongodb6` / mongodb8 `/usr/local/ehr/mongodb8`）：① 备份文件拷到对应 `data_bak`（格式 `ehr_YYYYMMDDhhmmss.tar.gz`）② `cd data_bak && tar xf *.tar.gz` ③ `../bin/mongorestore -h 127.0.0.1:27011 -u ehr -p <pwd> -d ehr --drop ./ehr_data/ehr --gzip`（端口 27011、库 ehr、用户 ehr；`<pwd>` 占位不固化明文）。
   - **PostgreSQL15 还原**（库 `dbehr`、端口 5632、账号 postgres）：① 备份文件拷到 `/usr/local/ehr/postgresql15/data_bak` ② `cd data_bak` ③ `../bin/pg_restore -U postgres -p 5632 -h 127.0.0.1 -d dbehr -c *.tar`。
-  - **信创数据库还原**：**人大金仓**已有具体备份/还原命令（见 RB-36）；达梦/迪欧西 DocDB 等仍联系对应厂商确认（yw 不臆测其语法）。
+  - **信创数据库还原**：**人大金仓**已有具体备份/还原命令（见 RB-38）；达梦/迪欧西 DocDB 等仍联系对应厂商确认（yw 不臆测其语法）。
   - **坑**：还原会覆盖现有数据（`--drop`/`-c`），须先确认已备当前数据；还原后重启应用（RB-11）验证。
 
 ### RB-13 · Redis7 部署与运维（可选缓存）
@@ -118,11 +118,10 @@
 | 应用 | JDK17+dhr；32G/4vCPU/500G；80/443 | JDK17+中间件；32G/4vCPU/500G；80/443 |
 | 运维 | Jenkins(Windows)；8G/2vCPU/500G；3389 | 同左 |
 | 报表 | 横石；8~16核/24~32G/200~500G SSD | 同左 |
-| 全文检索 | ES；4~8核/8~16G/500G；端口 9203 | 同左 |
 - **红线**：各服务器**不能合并**、不能装第三方服务（如衡石/OA）；必须单独购买部署；必须买防火墙；
-  数据库防火墙开 27011/54321(金仓)/5236(达梦)，web 开 80/443，ES 开 9203；时间须校准（`timedatectl`/ntpdate）。
+  数据库防火墙开 27011/54321(金仓)/5236(达梦)，web 开 80/443；时间须校准（`timedatectl`/ntpdate）。
 - **备注**（来源《私有化初始部署速览》）：人数 >3000 / 全员考勤打卡 / 批量算薪 的客户推荐高配服务器；运维服务器可用普通 PC 代替（主要方便运维、无命令操作）。
-- **集群部署（7 台）**（来源《EHR私有化集群部署文档》）：数据库 3 + 应用 2 + 缓存 1 + 负载均衡 1（低/高配与上表一致，见 RB-38）；服务器**不能合并**、不能装第三方服务。
+- **集群部署（7 台）**（来源《EHR私有化集群部署文档》）：数据库 3 + 应用 2 + 缓存 1 + 负载均衡 1（低/高配与上表一致，见 RB-40）；服务器**不能合并**、不能装第三方服务。
 
 ### RB-16 · 启动报错排查矩阵（DHR2.0 启动错误 · 语雀原文补全）
 > 来源（语雀导出系列，2026-09-02 本机补全，分批）：①首批 mac/ip地址不合法、authCode不合法、程序不支持降级、
@@ -150,7 +149,7 @@
 
 ### RB-17 · DHR2.0 运维黑名单（危险/禁止动作）
 - 🔴 **禁止把数据库服务暴露到外网**（Mongo/PG/金仓/达梦/巨杉）——仅限内网，防火墙只开必要端口。
-- 🔴 **禁止合并服务器角色**（数据库/应用/报表/全文检索必须分离）；禁止在它们上装第三方服务。
+- 🔴 **禁止合并服务器角色**（数据库/应用/报表必须分离）；禁止在它们上装第三方服务。
 - 🔴 **禁止改默认端口后不同步配置**（金仓 54321、达梦 5236、Mongo 27011、Redis 6389）。
 - 🔴 **停库/删备份/重生成授权文件**前必须确认影响面并留回滚（见 SKILL.md Step 4）。
 - 🔴 **不通外网的信创私有化不做客开**，必须做先联系研发。
@@ -307,7 +306,7 @@
   - **CPU**：`uname -m` 判架构；**x86 须支持 AVX**（`cat /proc/cpuinfo \| grep avx` 有输出），否则 MongoDB8 装不上（详见 RB-27 适配矩阵）。
   - 网络：服务器间通信；**应用服务器须能访问 `https://license.x-dhr.com`**（外部功能含考勤定位中转、节假日、招聘三方、社保比例、智能报税、表单 lbs、云脚本同步、电子合同、培训、AI 助手、短信）；有运维服务器须访问 `https://svn.x-dhr.com`。
   - 端口开放：数据服务器 mongo **27011** / PG **5632**；应用服务器 **80 或 443**（⚠️ Linux 普通用户无法用 1024 以下端口）。
-- **部署手册索引**（部署时查语雀原文）：无运维部署手册（本 skill 已提炼为 **RB-28**）/ 有运维（Ubuntu22.04）部署文档 / 信创（ky10）部署文档（东方通、宝兰德、金蝶、中创）/ 集群部署（**RB-38**）；库部署见 **RB-27**、Mongo6 集群见 **RB-30**；升级步骤见 RB-18；其他常用：证书配置（RB-19）/ 端口修改（RB-23）/ nginx 反向代理（**RB-32**）/ limit.properties（**RB-29**）/ 文案替换（**RB-31**）/ 微信服务号（**RB-33**）/ 金仓备份还原（**RB-36**）/ cfg.properties 图解 / 数据操作（RB-12）。
+- **部署手册索引**（部署时查语雀原文）：无运维部署手册（本 skill 已提炼为 **RB-28**）/ 有运维（Ubuntu22.04）部署文档 / 信创（ky10）部署文档（东方通、宝兰德、金蝶、中创）/ 集群部署（**RB-40**）；库部署见 **RB-27**、Mongo6 集群见 **RB-30**；升级步骤见 RB-18；其他常用：证书配置（RB-19）/ 端口修改（RB-23）/ nginx 反向代理（**RB-32**）/ limit.properties（**RB-29**）/ 文案替换（**RB-31**）/ 微信服务号（**RB-35**）/ 金仓备份还原（**RB-38**）/ cfg.properties 图解 / 数据操作（RB-12）。
 - **高频问题索引**：启动报错系列见 RB-16；更多检索语雀运维知识库。
 
 ### RB-27 · 数据库部署（MongoDB8 / PostgreSQL15 · OS 与 CPU 架构适配）
@@ -367,7 +366,7 @@
   - 无运维：直接改应用服务器上述两路径 → 重启应用。
 - **预置 key 未覆盖时**：确认所需限定量参数后**新增**到文件，重启生效（属 RB-17 高危，改前备份原文件）。
 - **常用限定量（按类，值均为默认，按需改）**：
-  - 文件上传：`file.uploadMaxSize=300`（300M，**需与 nginx `client_max_body_size` 协调**，见 RB-32）
+  - 文件上传：`file.uploadMaxSize=300`（300M，**需与 nginx `client_max_body_size` 协调**，见 RB-33）
   - 表单：`limit.form.subFormCount4biz=15`；`limit.form.maxMainFormFieldCount=260`（249<x<500）
   - 组织：`limit.org.maxAccountCount=2000`（单位人员上限）、`limit.org.maxDepartmentCount=1600`
   - 考勤（`limit.attendance.*`）：`maxTemplateCount=300`（考勤组）、`maxClassCount=100`（班次）、`maxClassTemplatePersonCount=1000`（排班人数）、`maxExportDataCount=20000`（分页导出）等 60+ 项
@@ -402,15 +401,27 @@
 - **改 deployDHR.sh**：取消两段 i18n 复制注释（`#cp -f ... i18n_en_US.properties ...`），保存后重启生效；**重启后建议无痕查看**（有缓存）。
 - **坑**：① 只改 `/usr/local` 漏 `/usr/local/dhr/config/i18n` → 不生效；② 用部分匹配 → 替换不生效；③ 忘取消 deployDHR.sh 注释 → 文件没被分发。
 
-### RB-32 · nginx 反向代理 + 坑（413 / 下划线请求头）
-- **来源**：语雀《使用nginx反向代理薪事力参考配置》《Nginx反向代理上传413》《OA表单推送失败》（2026-09-03 用户提供导出）。
+### RB-32 · nginx 反向代理薪事力（参考配置）
+- **来源**：语雀《使用nginx反向代理薪事力参考配置》（2026-09-03 用户提供导出）。
 - **HTTP 代理**（`upstream` 内 `server 127.0.0.1:8443 max_fails=10 fail_timeout=30s`，实际改内网地址端口）：`listen 8011` + `proxy_pass http://ehrserver` + 头透传 `X-Real-IP / X-Forwarded-For / Host $host:$server_port / X-Forwarded-Proto` + 超时 `proxy_connect/send/read_timeout 600s` + `client_max_body_size 100m`。
 - **SSL 代理**：`listen 443 ssl` + `ssl_certificate ssl/<域名>.pem` + `ssl_certificate_key ssl/<域名>.key`（证书放 `/usr/local/dhr/conf/ssl`，改实际名）+ **`proxy_redirect http:// https://`**（nginx 开 ssl、后端用 http 时必须）。
-- **坑 1 · 上传 413 `Request Entity Too Large`**：nginx **未配** `client_max_body_size`（默认 1m），上传大文件超限返回 413 → 加 `client_max_body_size 100m;`（按需调）后 `nginx -s reload`。
-- **坑 2 · OA 表单推送失败 `errcode:-1 参数缺失：dev_token`**：请求头含 `_`（下划线）被 nginx 默认丢弃 → 在 `nginx.conf` 的 `http{}` 模块加 `underscores_in_headers on;` → `nginx -s reload`。
-- **坑**：① 后端是 https 却没配 `proxy_redirect`；② 改了配置只 save 不 reload；③ `client_max_body_size` 与后端 `file.uploadMaxSize`（RB-29）不一致，仍会被后端拦。
+- **坑**：① 后端是 https 却没配 `proxy_redirect`；② 改了配置只 save 不 reload。
 
-### RB-33 · 微信服务号配置（新版）
+### RB-33 · nginx 上传 413（client_max_body_size）
+- **来源**：语雀《Nginx反向代理上传413》（2026-09-03 用户提供导出）。
+- **触发**：上传大文件返回 `413 Request Entity Too Large`。
+- **根因**：nginx **未配** `client_max_body_size`（默认 1m），上传超限被拒。
+- **处置**：加 `client_max_body_size 100m;`（按需调）后 `nginx -s reload`。
+- **坑**：`client_max_body_size` 与后端 `file.uploadMaxSize`（RB-29）不一致，仍会被后端拦。
+
+### RB-34 · nginx OA 表单推送失败（下划线请求头）
+- **来源**：语雀《OA表单推送失败》（2026-09-03 用户提供导出）。
+- **触发**：OA 表单推送薪事力失败，提示 `errcode:-1 参数缺失：dev_token`。
+- **根因**：请求头含 `_`（下划线）被 nginx 默认丢弃，后端取不到 `dev_token`。
+- **处置**：在 `nginx.conf` 的 `http{}` 模块加 `underscores_in_headers on;` → `nginx -s reload`。
+- **坑**：只 save 不 reload 不生效。
+
+### RB-35 · 微信服务号配置（新版）
 - **来源**：语雀《薪事力微信服务号配置（新版）-私有化客户》（2026-09-03 用户提供导出）。
 - **🔴 服务号仅支持 ehr 为 80 或 443 端口**。
 - **wechat.properties**（有运维：运维机 dhr 目录 + 应用服务器 `/usr/local` 与 `/usr/local/dhr/config`；无运维：后两路径）：
@@ -419,23 +430,23 @@
 - **服务号后台**（客户自行申请的服务号）：① 业务域名、JS 接口安全域名、网页授权域名配成客户域名；② 安全中心 IP 白名单填**薪事力出口 IP**；③ 自定义菜单入口地址 `客户域名/thirdMenu.do?method=menu4Wechat&appId=<id>`。
 - 改完重启应用生效。**坑**：ehr 非 80/443 → 服务号对接失败；AppSecret 配错 → 拉不起用户信息。
 
-### RB-34 · 通过数据库修改用户密码
+### RB-36 · 通过数据库修改用户密码
 - **来源**：语雀《如何通过数据库修改用户默认密码》（2026-09-03 用户提供导出）。适用：服务器无法访问外网短信平台、需改管理员默认密码。
 - **🔴 变更型高危**：改前确认目标用户手机号；改完须重启 ehr 才生效（用户密码刷缓存）。
 - 连库：`/usr/local/ehr/postgresql15/bin/psql -U postgres -p 5632 -h 127.0.0.1 -d dbehr`
 - 查用户：`select * from ours_account where phone='被修改用户的手机号';`
-- 改密码：`UPDATE ours_account set password='<SHA1密文>' where phone='被修改用户的手机号';`
-- **密码加密为 SHA1**：默认密码 123456 的 SHA1 密文见原文档（本 skill 不固化）；自定义密码用 sha1 在线工具（如 emn178.github.io/online-tools/sha1.html）生成密文替换 SQL 中的占位。
+- 改密码（默认密码 123456）：`UPDATE ours_account set password='7C4A8D09CA3762AF61E59520943DC26494F8941B' where phone='被修改用户的手机号';`
+- **密码加密为 SHA1**：默认密码 `123456` 的 SHA1 密文为 `7C4A8D09CA3762AF61E59520943DC26494F8941B`（官方文档原文，注意不要修改）；自定义密码用 sha1 在线工具（如 emn178.github.io/online-tools/sha1.html）生成密文替换 SQL 中的密文。
 - 退出 `\q` → 重启应用。**坑**：忘重启 → 新密码不生效（旧密码仍可用，因缓存未刷）。
 
-### RB-35 · 页面报错 NoSuchFileException（Tomcat work 目录被清）
+### RB-37 · 页面报错 NoSuchFileException（Tomcat work 目录被清）
 - **来源**：语雀《访问页面报错 NoSuchFileException:/tmp/tomcat...work...》（2026-09-03 用户提供导出）。
 - **现象**：访问某些页面报「出错啦，请稍后再试」，`logs/dhr.log` 提示 `java.nio.file.NoSuchFileException:/tmp/tomcat.xxxxxx/work/Tomcat/localhost/ROOT/xxx.jar`。
 - **根因**：Tomcat 的 `work` 临时目录被系统清理，缓存文件缺失。
 - **处置**：① 重启薪事力应用服务；或 ② 将 ehr 版本更新到 **6.02.xx 及以上**。
 - **区分**：RB-16 的「东方通临时文件缺失 NoSuchFileException」是信创中间件 tongweb 的临时目录问题，本 RB 是标准 Tomcat `work` 目录被清，二者组件不同。
 
-### RB-36 · 信创人大金仓备份与还原
+### RB-38 · 信创人大金仓备份与还原
 - **来源**：语雀《信创环境人大金仓备份与还原》（2026-09-03 用户提供导出）。工具目录 `/home/kingbase/install/kingbase/bin`（按实际改）。
 - **备份**（端口 **54321**、用户 `root`）：
   - dmp：`KINGBASE_PASSWORD=<密码> sys_dump -h 127.0.0.1 -p 54321 -d <库名> -U root -Fc -f /home/kingbase/1.dmp`
@@ -446,7 +457,7 @@
   - sql：`ksql -U root -d <库名> -f /home/kingbase/1.sql`（**无 `--clean`，还原前须手动删旧数据**）
 - **回写 RB-12**：信创库还原中，**人大金仓**现已有具体命令（本 RB）；**达梦/迪欧西 DocDB 仍联系对应厂商确认**（yw 不臆测其语法）。
 
-### RB-37 · 数据库数据文件大小 / 表数量统计（资源盘点）
+### RB-39 · 数据库数据文件大小 / 表数量统计（资源盘点）
 - **来源**：语雀《查看数据库数据文件大小、统计表数量》（2026-09-03 用户提供导出）。只读查询，无变更。
 - **PostgreSQL15**（连库后执行）：
   - 库大小：`SELECT datname AS database_name, pg_size_pretty(pg_database_size(datname)) AS size FROM pg_database WHERE datname = 'dbehr';`
@@ -454,7 +465,7 @@
 - **MongoDB**（连库后执行）：`db.stats()` → 输出 `collections`（集合数量）、`totalSize`（数据文件大小）。
 - 用于资源盘点/扩盘前评估，属 Step 1「查询型」，无需处置。
 
-### RB-38 · 私有化集群部署（7 台服务器）
+### RB-40 · 私有化集群部署（7 台服务器）
 - **来源**：语雀《dhr2.0-EHR私有化集群部署文档》（2026-09-03 用户提供导出）。与 RB-26（单机速览）/ RB-28（无运维单机流程）互补，本 RB 为**集群版总览**。
 - **7 台服务器（低/高配）**：数据库 3 台（4核/32G/500G 或 8核/64G/1T）+ 应用 2 台（4核/32G/200G 或 8核/64G/200G）+ 缓存 1 台 + 负载均衡 1 台（后两者同应用配置）。
 - **红线**：各服务器**不能合并**、不能装第三方服务（衡石/OA）；必须单独购买；必须买防火墙。
