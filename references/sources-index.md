@@ -1,8 +1,8 @@
 # yw 知识来源索引（sources-index）
 
-> 本 Skill 的 `runbook.md`（RB-10~RB-28）与 `work-log.md` 提炼自下列**官方部署文档**与**语雀导出的运维知识**。
+> 本 Skill 的 `runbook.md`（RB-10~RB-38）与 `work-log.md` 提炼自下列**官方部署文档**与**语雀导出的运维知识**。
 > 原始文件存于用户本机 `Downloads/`，**不纳入本仓库版本管理**（避免 PDF/DOCX 二进制膨胀）；此处仅做溯源归类，便于回溯与补证。
-> 最后整理：2026-09-02（darwin-skill 归类整理批次）。
+> 最后整理：2026-09-03（第六批语雀文档，RB-29~RB-38）。
 
 ## 一、语雀导出 · 运维知识（playbook 直接来源）
 
@@ -33,6 +33,21 @@
 - `dhr2.0-PostgreSQL15数据库部署.md`
 - `dhr2.0无运维服务器部署手册.md`
 - 涵盖：OS/CPU 架构适配矩阵（x86 须 AVX）/ 部署包与 `deployMongoDB.sh`·`deployPostgreSQL.sh`·`deployWeb.sh` 脚本 / 在线·离线两种安装 / fontconfig 依赖 / 软加密（输入 n）/ `init_PostgreSQL_Index.sql` 预置索引 / `/tmp/install.log` 排错
+
+### 六批（limit限定量 / Mongo6集群 / 文案 / nginx / 微信 / 改密 / 金仓 / 统计 / 集群部署）→ RB-29~RB-38
+- `dhr2.0私有化-配置文件limit.properties关于限定量的配置.md`
+- `dhr2.0-MongoDB6集群配置（三节点）.md`
+- `dhr2.0私有化文案(国际化)替换操作说明.md`
+- `dhr2.0使用nginx反向代理薪事力参考配置.md`
+- `dhr2.0薪事力微信服务号配置（新版）-私有化客户.md`
+- `dhr2.0-Nginx反向代理有上传文件异常提示...413(Request Entity Too Large).md`
+- `dhr2.0如何通过数据库修改用户默认密码.md`
+- `dhr2.0出现访问某些页面报错...NoSuchFileException...tmp_tomcat...md`
+- `dhr2.0信创环境人大金仓备份与还原.md`
+- `dhr2.0OA表单推送数据到薪事力失败...nginx反向代理...md`
+- `dhr2.0查看数据库数据文件大小、统计表数量.md`
+- `dhr2.0服务器上使用startDHR.sh启动应用提示dhr.war process is running..md`
+- `dhr2.0-EHR私有化集群部署文档.md`
 
 ## 二、官方部署文档（DHR2.0 私有化）
 - `dhr2.0-EHR私有化部署文档 for Ubuntu20.04系统.md / .pdf / .docx`
