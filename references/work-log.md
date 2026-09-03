@@ -292,4 +292,4 @@
   - SKILL.md 路由 RB-10~RB-28 → RB-10~RB-38 + 调研来源补第六批；sources-index.md 补六批 13 篇
 - 边界: MongoDB6/PG15/Redis 出厂密码、123456 的 SHA1 密文均不写入(明文密码零写入红线)；只记端口/库名/用户，密码写"见原文档"
 - 验证: RB-29~38 落位(363-457行)；SKILL RB-10~RB-38=1；容器字样 SKILL/runbook/sources 均 0；明文密码扫描 0 命中；SKILL 9544B(<150% 红线)、runbook 41921B→55551B
-- 待跟进: 推送远程（本条 work-log 及 runbook/SKILL/sources 四件）
+- 推送: 15:25 经 GitHub Contents API 推送 4 件 → SKILL.md@7b33c14980f3 / runbook.md@28191c4f66c3 / work-log.md@e5e15e4750d4 / sources-index.md@1e6334ac5d33（远程 main 由 09-03 10:52 态前进到 RB-10~RB-38 完成态）
