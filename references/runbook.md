@@ -44,7 +44,7 @@
 ### RB-10 · 服务架构与安装路径（基础路径 /usr/local）
 - **安装路径基础为 `/usr/local`**（有运维服务器 Jenkins 管理时的标准布局）：
   - 应用：`/usr/local/dhr`
-  - MongoDB6：`/usr/local/ehr/mongodb6`
+  - MongoDB（**新部署为 MongoDB8**：`/usr/local/ehr/mongodb8`；存量环境可能是 MongoDB6：`/usr/local/ehr/mongodb6`，命令按实际目录替换）
   - PostgreSQL15：`/usr/local/ehr/postgresql15`
   - 说明：若实际环境根目录不同（如 `/data/usr/local`），按同结构替换前缀即可；本手册所有演示均以 `/usr/local` 为准。
 - **组件与端口**：
@@ -302,10 +302,61 @@
 - **服务器配置**：人数 >3000 / 全员考勤打卡 / 批量算薪 → 推荐高配（见 RB-15）；运维服务器可用普通 PC（方便运维、无命令操作）。
 - **环境检查清单**（部署前必查，关联 RB-10 / RB-15）：
   - 磁盘：大小 + 挂载；服务器时间须准确（`timedatectl` / ntpdate）。
+  - **CPU**：`uname -m` 判架构；**x86 须支持 AVX**（`cat /proc/cpuinfo \| grep avx` 有输出），否则 MongoDB8 装不上（详见 RB-27 适配矩阵）。
   - 网络：服务器间通信；**应用服务器须能访问 `https://license.x-dhr.com`**（外部功能含考勤定位中转、节假日、招聘三方、社保比例、智能报税、表单 lbs、云脚本同步、电子合同、培训、AI 助手、短信）；有运维服务器须访问 `https://svn.x-dhr.com`。
   - 端口开放：数据服务器 mongo **27011** / PG **5632**；应用服务器 **80 或 443**（⚠️ Linux 普通用户无法用 1024 以下端口）。
-- **部署手册索引**（部署时查语雀原文）：无运维部署手册 / 有运维（Ubuntu22.04）部署文档 / 信创（ky10）部署文档（东方通、宝兰德、金蝶、中创）；升级步骤见 RB-18；其他常用：证书配置（RB-19）/ 端口修改（RB-23）/ nginx 反向代理 / limit.properties / cfg.properties 图解 / 数据操作（RB-12）。
+- **部署手册索引**（部署时查语雀原文）：无运维部署手册（本 skill 已提炼为 **RB-28**） / 有运维（Ubuntu22.04）部署文档 / 信创（ky10）部署文档（东方通、宝兰德、金蝶、中创）；库部署见 **RB-27**；升级步骤见 RB-18；其他常用：证书配置（RB-19）/ 端口修改（RB-23）/ nginx 反向代理 / limit.properties / cfg.properties 图解 / 数据操作（RB-12）。
 - **高频问题索引**：启动报错系列见 RB-16；更多检索语雀运维知识库。
+
+### RB-27 · 数据库部署（MongoDB8 / PostgreSQL15 · OS 与 CPU 架构适配）
+- **来源**：语雀《dhr2.0不同适配的操作系统下MongoDB8数据库部署》《dhr2.0-PostgreSQL15数据库部署》（2026-09-03 用户提供导出）。
+- **物料源站**：`http://124.223.207.139/usxz/...`（官方下载站；原文档另附百度网盘镜像，提取码 `qwer`）。
+- **🔴 先选对包（选错包=必然起不来）**：
+  | 架构 | 适配操作系统 |
+  |---|---|
+  | **x86**（**须支持 AVX 指令集**） | Ubuntu 20 / 22 / 24；CentOS8、RedHat8、麒麟 V10、openEuler22、AnolisOS8、UOS server 20；CentOS9、RedHat9、Rocky Linux9、openEuler24 |
+  | **ARM**（aarch64） | CentOS8、RedHat8、麒麟 v10、openEuler22、AnolisOS8、UOS server 20；CentOS9、RedHat9、Rocky Linux9、openEuler24 |
+- **部署前预检（必须 root）**：`cat /etc/os-release`（OS）→ `uname -m`（架构）→ `cat /proc/cpuinfo \| grep avx`（x86 必须有输出）→ 校正服务器时间 → 检查磁盘挂载 → 开放端口（Mongo **27011** / PG **5632**）。
+- **MongoDB8 部署**（端口 **27011**、库 **ehr**、连接用户 **ehr**；出厂默认密码见官方部署文档，不写入本 skill）：
+  - 包：x86 按 OS 取 `mongodb-8.2.7_x86_ubuntu{20,22,24}.tar.gz` / `mongodb-8.2.7_x86_rhel8.tar.gz` / `mongodb-8.2.7_x86_rhel9.tar.gz`；ARM 取 `mongodb-8.2.7_aarch64_rhel8.tar.gz` / `mongodb-8.2.7_aarch64_rhel9.tar.gz`（路径前缀 `usxz/mongodb/{ubuntu,centos/centos8,centos/centos9}/`）。
+  - 预置脚本：`usxz/xsl/init_MongoDB_App.js`、`usxz/xsl/inti_MongoDB_index.js`（**官方文件名就是 `inti_` 拼写，勿"修正"**）。
+  - 部署脚本：`usxz/xsl/deployShell/deployMongoDB.sh`。
+  - 在线：`curl -k -O <包URL>` → 同目录 `curl -k -O` 两个 js → `curl -k -O .../deployMongoDB.sh && bash deployMongoDB.sh`。
+  - 离线：包 + 2 个 js + 部署脚本上传到服务器**同一目录** → `bash deployMongoDB.sh`。
+  - 交互：按提示输入 mongodb **安装绝对路径** → `y` 确认 / `n` 重输 → 回车后后台安装。
+- **PostgreSQL15 部署**（端口 **5632**、库 **dbehr**、连接用户 **postgres**）：
+  - 包：x86 `usxz/postgres/postgresql-15.3.tar.gz`；ARM `usxz/postgres/postgresql15_aarch.tar.gz`。
+  - 部署脚本：`usxz/xsl/deployShell/deployPostgreSQL.sh`（PG **无预置 js**，只有部署脚本）。
+  - 在线 / 离线流程同 Mongo（包与脚本必须在同一目录）。
+- **验证**：`ps -ef | grep -E 'mongod|postgres'` 进程在；安装完成提示含安装路径；应用能连库（RB-11 顺序）。
+- **坑**：① 包与 OS/架构不匹配 → 启动即失败；② x86 无 AVX → Mongo8 跑不起来；③ 未用 root → 权限不足；④ 包与脚本不在同一目录 → 脚本找不到物料；⑤ 端口 27011/5632 未开 → 应用连不上（误判成应用问题）；⑥ 安装异常查 **`/tmp/install.log`**。
+
+### RB-28 · 无运维服务器完整部署流程（Mongo8 → PG15 → 应用 → 预置索引 → 定时备份）
+- **来源**：语雀《dhr2.0无运维服务器部署手册》（2026-09-03 用户提供导出）。完整部署是从零搭全套，属 **RB-17 高危**，须先确认影响面再执行。
+- **部署前（红线级前置）**：
+  - 应用服务器**必须先装 `fontconfig` 依赖**，否则应用起不来/字体异常。
+  - 用户须已申请**域名 + 域名 https 证书（必须）**；强烈建议自购并安装防火墙（软/硬）。
+  - 全部操作 **root**；校正时间、检查磁盘挂载；确认应用服务器能访问 `https://license.x-dhr.com`（RB-21）。
+- **🔴 顺序不可颠倒**：① MongoDB8 → ② PostgreSQL15（均见 RB-27）→ ③ 应用服务 → ④ PG 预置索引 → ⑤ 定时备份。
+- **应用部署物料**（全部放**同一目录**，源站前缀 `http://124.223.207.139/usxz/xsl/`）：
+  - JDK：x86 `ehr_jdk.tar.gz`；ARM `ehr_jdk_aarch.tar.gz`
+  - war：`ehr_privatization.war`
+  - 配置：`deployShell/cfg.properties`、`deployShell/tomcat.properties`
+  - 部署脚本：`deployShell/deployWeb.sh`；更新脚本 `deployShell/deployDHR.sh`（仅升级时用，RB-18）
+- **步骤**：
+  1. 在线 `curl -k -O` 上述物料（离线则下载到本地后上传）到同一目录。
+  2. 改 `cfg.properties`（授权/访问地址等，图解见原文档；可加 `product.defaultPassword=123456` 设超管及后续开通账户的默认密码，明文，见 RB-24）；改 `tomcat.properties` 的端口（默认 **443**，改端口见 RB-23）。
+  3. 确认能访问 `https://license.x-dhr.com`；**纯内网部署**须先申请**软加密文件**并放到同目录（软加密授权文件由商务联系薪事力生产管理员提供）。
+  4. `curl -k -O http://124.223.207.139/usxz/xsl/deployShell/deployWeb.sh && bash deployWeb.sh`（离线：直接 `bash deployWeb.sh`）。
+  5. 脚本交互：能通 license 地址 → 输入 **`y`**；采用软加密 → 输入 **`n`**。
+  6. 开放 `tomcat.properties` 中配置的端口 → 内网测试访问服务。
+  7. 服务正常后，在 **PG 数据库服务器**执行预置索引脚本：
+     - `curl -k -O http://124.223.207.139/usxz/xsl/init_PostgreSQL_Index.sql`
+     - 执行（反引号串自动解析 psql 绝对路径，**勿手改**）：
+       `` `ps aux | grep 'postgresql15/bin' | grep -v grep | sed -n 's|.* \(/[^ ]*/postgresql15/bin\)/.*|\1|p'`/psql -f ./init_PostgreSQL_Index.sql -U postgres -p 5632 -h 127.0.0.1 -d dbehr ``
+  8. 无运维服务器 → 按 RB-12 建 crontab 定时备份（按实际安装路径调整）。
+- **验证**：`ss -tlnp` 端口在监听；业务页可登录；`tail -200f /usr/local/dhr/logs/dhr.log` 无新错；PG 索引脚本执行无 ERROR。
+- **坑**：① 缺 `fontconfig`；② 物料不在同一目录 → `deployWeb.sh` 找不到文件；③ 软加密场景却输入 `y` → 卡在在线取 license；④ 端口未开/未映射；⑤ 漏执行 `init_PostgreSQL_Index.sql` → 后续性能与索引异常；⑥ 部署/安装异常一律查 `/tmp/install.log`。
 
 ---
 
