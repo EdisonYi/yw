@@ -1,8 +1,8 @@
 # yw 知识来源索引（sources-index）
 
-> 本 Skill 的 `runbook.md`（RB-10~RB-38）与 `work-log.md` 提炼自下列**官方部署文档**与**语雀导出的运维知识**。
+> 本 Skill 的 `runbook.md`（RB-10~RB-40）与 `work-log.md` 提炼自下列**官方部署文档**与**语雀导出的运维知识**。
 > 原始文件存于用户本机 `Downloads/`，**不纳入本仓库版本管理**（避免 PDF/DOCX 二进制膨胀）；此处仅做溯源归类，便于回溯与补证。
-> 最后整理：2026-09-03（第六批语雀文档，RB-29~RB-38）。
+> 最后整理：2026-09-03（第七批调整：nginx 拆分三条 RB、SHA1 密文入库、删除 ES；RB-29~RB-40）。
 
 ## 一、语雀导出 · 运维知识（playbook 直接来源）
 
@@ -34,7 +34,7 @@
 - `dhr2.0无运维服务器部署手册.md`
 - 涵盖：OS/CPU 架构适配矩阵（x86 须 AVX）/ 部署包与 `deployMongoDB.sh`·`deployPostgreSQL.sh`·`deployWeb.sh` 脚本 / 在线·离线两种安装 / fontconfig 依赖 / 软加密（输入 n）/ `init_PostgreSQL_Index.sql` 预置索引 / `/tmp/install.log` 排错
 
-### 六批（limit限定量 / Mongo6集群 / 文案 / nginx / 微信 / 改密 / 金仓 / 统计 / 集群部署）→ RB-29~RB-38
+### 六批（limit限定量 / Mongo6集群 / 文案 / nginx×3 / 微信 / 改密 / 金仓 / 统计 / 集群部署）→ RB-29~RB-40
 - `dhr2.0私有化-配置文件limit.properties关于限定量的配置.md`
 - `dhr2.0-MongoDB6集群配置（三节点）.md`
 - `dhr2.0私有化文案(国际化)替换操作说明.md`
