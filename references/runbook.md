@@ -117,8 +117,8 @@
 | 数据库 | Mongo8+PG15；32G/4vCPU/500G SSD；端口 5632+27011 | DocDB(新增)/巨杉(存量)+金仓/达梦/海量；32G/4vCPU/500G；端口 27017+54321/5236 |
 | 应用 | JDK17+dhr；32G/4vCPU/500G；80/443 | JDK17+中间件；32G/4vCPU/500G；80/443 |
 | 运维 | Jenkins(Windows)；8G/2vCPU/500G；3389 | 同左 |
-- **红线**：各服务器**不能合并**、不能装第三方服务（如OA）；必须单独购买部署；必须买防火墙；
-  数据库防火墙开 27011/54321(金仓)/5236(达梦)，web 开 80/443；时间须校准（`timedatectl`/ntpdate）。
+- **红线**：各服务器**不能合并**、不能装第三方服务（如OA）；必须单独购买部署；建议自购防火墙（强烈建议）；
+  数据库防火墙开 27011/54321(金仓)/5236(达梦)，web 开 80/443；应用与数据库服务器时间须校准/同步（`timedatectl`/ntpdate）——时间不一致会影响应用服务与数据库服务（授权校验、日志时序、计划任务等）。
 - **备注**（来源《私有化初始部署速览》）：人数 >3000 / 全员考勤打卡 / 批量算薪 的客户推荐高配服务器；运维服务器可用普通 PC 代替（主要方便运维、无命令操作）。
 - **集群部署（7 台）**（来源《EHR私有化集群部署文档》）：数据库 3 + 应用 2 + 缓存 1 + 负载均衡 1（低/高配与上表一致，见 RB-40）；服务器**不能合并**、不能装第三方服务。
 
@@ -135,7 +135,7 @@
 | `authCode不合法：xxx-xxx-xxx-xxx` | 授权码错 | 更新后 cfg.properties 被覆盖致授权码错：①有运维→查运维机 dhr 目录 cfg.properties 授权码，更正后重跑一键更新；②无运维→查 `/usr/local/` 与 `/usr/local/dhr/config` 下 cfg.properties，更正后重启；③软加密文件→联系服务运维中心确认单位是否正确，重生成替换后重启 |
 | `程序不支持降级` | 版本回退 | 用低于现有版本的 war 更新（运维不通外网/无运维常见）：①有运维不通外网→下最新 war 放运维机 dhr 文件夹（默认 D:\dhr）跑 updateEHR；②无运维→下最新 war 传 `/usr/local` 跑 `deployDHR.sh`（RB-18 路径A） |
 | `产品升级时间已到期` | license 有效期 | 对应单位 license 到期校验不过：商务确认延期时长→提交单位信息给服务支持部/服务运维中心延期→重启应用 |
-| `UnknownHostException: license.x-dhr.com` / `获取license失败：license.x-dhr.com` | 网络/出网白名单 | 应用需在线校验授权码+依赖生产系统：**开放应用服务器访问 `https://license.x-dhr.com` 与 `https://www.x-dhr.com`** → 重启（见 RB-21） |
+| `UnknownHostException: license.x-dhr.com` / `获取license失败：license.x-dhr.com` | 网络/出网白名单 | 应用需在线校验授权码+依赖生产系统：**开放应用服务器访问 `https://license.x-dhr.com`** → 重启（见 RB-21） |
 | `Keystore was tampered with, or password was incorrect` | 证书/SSL | 证书名或密码错致 Spring Boot 失败：①查 `config/tomcat.properties` 证书名/密码 ②查证书存放路径下证书是否存在且一致 ③查 tomcat.properties 是否被覆盖（有运维查运维机 dhr 目录、无运维查 `/usr/local` 下）比对 ④均无差异则联系管理员重新下载证书配置（RB-19） |
 | `地址已在使用`（Address already in use） | 服务层/端口 | 端口被占：换其他端口启动；查占用 `ss -anltp \| grep <端口>` / `lsof -i:<端口>`（同 RB-03） |
 | `FATAL: could not open shared memory segment "/PostgreSQL.xxxxxx": No such file or directory` | 数据层/systemd | PG 共享缓存被删（systemd `RemoveIPC=yes` 清用户 shm）：①`vi /etc/systemd/logind.conf` 设 `RemoveIPC=no` ②`systemctl restart systemd-logind` ③重启 postgre ④重启应用 |
@@ -189,7 +189,7 @@
   - `tomcat.properties`：端口 + 证书（HTTPS 证书配置见 RB-19；证书类型 tomcat/pfx，单端口限制）
   - `sms.properties`：短信平台（非我方容联须改）
   - `cfg` 个性化中文：转 Unicode 编码
-  - 出网白名单：应用须可达 `license.x-dhr.com` + `www.x-dhr.com`（见 RB-21；原理见 RB-10 分层定位）
+  - 出网白名单：应用须可达 `license.x-dhr.com`（见 RB-21；原理见 RB-10 分层定位）
   - **信创无运维升级**（来源《dhr2.0信创环境无运维服务器升级步骤》）：即路径A 变体——①下载对应中间件 war：东方通 `ehr_tongweb.war` / 宝兰德 `ehr_bes.war` / 金蝶 `ehr_aas.war` 传 `/usr/local` ②数据库备份：PG/mongo 同路径A；**信创库（金仓/达梦）与信创文档库（迪欧西 DocDB / 巨杉 SequoiaDB）备份须联系厂商确认命令** ③更新前**备份配置**到 `/tmp/properties`date +%Y%m%d``（cp `/usr/local/dhr/config/*` 过去）④`/usr/local/deployDHR.sh` → 启应用 → `tail -300f logs/dhr.log` 验证。栈差异见 RB-14。
 - **验证**：升级后登录页版本号=目标版；`ps -ef | grep -E 'dhr|mongod|postgres'` 进程在；
   `tail -200f logs/dhr.log` 无新错；业务可正常登录操作（同 RB-11 验证三件套）。
@@ -239,9 +239,8 @@
 ### RB-21 · 应用出网白名单（license / 生产系统）
 - **触发**：启动报 `UnknownHostException: license.x-dhr.com` 或 `获取license失败：license.x-dhr.com`（Caused by: ...BizException）。
 - **根因**：应用启动需在线校验授权码 + 某些模块依赖生产系统，应用服务器须能出网到以下地址（语雀原文）。
-- **标准处置**：开放应用服务器访问以下两个地址后重启应用：
+- **标准处置**：开放应用服务器访问以下地址后重启应用：
   - `https://license.x-dhr.com`
-  - `https://www.x-dhr.com`
 - **验证**：`curl -sv https://license.x-dhr.com` 可达（握手/200）；重启后 `logs/dhr.log` 无 UnknownHost/获取license失败。
 - **坑**：仅**应用服务器**需出网（数据库严禁外网，RB-17）；若客户走 squid 代理，还需在 cfg.properties 配 `http.license.proxyHost/Port`（见 RB-16 squid 行）。
 
@@ -350,8 +349,8 @@
   3. 确认能访问 `https://license.x-dhr.com`；**纯内网部署**须先申请**软加密文件**并放到同目录（软加密授权文件由商务联系薪事力生产管理员提供）。
   4. `curl -k -O http://124.223.207.139/usxz/xsl/deployShell/deployWeb.sh && bash deployWeb.sh`（离线：直接 `bash deployWeb.sh`）。
   5. 脚本交互：能通 license 地址 → 输入 **`y`**；采用软加密 → 输入 **`n`**。
-  6. 开放 `tomcat.properties` 中配置的端口 → 内网测试访问服务。
-  7. 服务正常后，在 **PG 数据库服务器**执行预置索引脚本：
+  6. 开放 `tomcat.properties` 中配置的端口 → 内网测试访问服务，**确认 dhr 应用服务已正常启动**（端口在监听 `ss -tlnp` + 业务页可登录 + `tail -200f /usr/local/dhr/logs/dhr.log` 无新错）。
+  7. 🔴 **须先确认 dhr 应用服务已正常启动（见步骤 6 校验项）后再执行**预置索引脚本——应用未完全启动就执行索引脚本易导致数据/索引不一致。在 **PG 数据库服务器**执行：
      - `curl -k -O http://124.223.207.139/usxz/xsl/init_PostgreSQL_Index.sql`
      - 执行（反引号串自动解析 psql 绝对路径，**勿手改**）：
        `` `ps aux | grep 'postgresql15/bin' | grep -v grep | sed -n 's|.* \(/[^ ]*/postgresql15/bin\)/.*|\1|p'`/psql -f ./init_PostgreSQL_Index.sql -U postgres -p 5632 -h 127.0.0.1 -d dbehr ``
@@ -468,7 +467,7 @@
 ### RB-40 · 私有化集群部署（7 台服务器）
 - **来源**：语雀《dhr2.0-EHR私有化集群部署文档》（2026-09-03 用户提供导出）。与 RB-26（单机速览）/ RB-28（无运维单机流程）互补，本 RB 为**集群版总览**。
 - **7 台服务器（低/高配）**：数据库 3 台（4核/32G/500G 或 8核/64G/1T）+ 应用 2 台（4核/32G/200G 或 8核/64G/200G）+ 缓存 1 台 + 负载均衡 1 台（后两者同应用配置）。
-- **红线**：各服务器**不能合并**、不能装第三方服务（OA）；必须单独购买；必须买防火墙。
+- **红线**：各服务器**不能合并**、不能装第三方服务（OA）；必须单独购买；建议自购防火墙。
 - **部署顺序与组件**：① 磁盘挂载（`fdisk -l`→`df -T -h`→`mkfs.ext4 /dev/vdb`→`mount /dev/vdb /usr/local/ehr`→`/etc/fstab` 开机挂载）② 句柄数（root+postgres，`/etc/security/limits.conf`）③ MongoDB6 集群（RB-30）④ PG15 主从 ⑤ Redis7 ⑥ DHR 应用（2 台）⑦ nginx 负载均衡（RB-32）。
 - **DHR 应用双节点关键**：
   - `cfg.properties` 增加 `product.localMaster=true` **只能配在一台**应用服务器（主节点标识，禁止两台都配）。
