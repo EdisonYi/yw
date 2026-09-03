@@ -171,7 +171,7 @@
   6. 执行更新：`/usr/local/deployDHR.sh`（自动解包部署）
   7. 启应用：`cd /usr/local/dhr && sh startDHR.sh`
 - **路径B · 有运维服务器常规升级（Jenkins 一键更新 `updateEHR`）**：
-  常规版本更新（补丁 / 小版本 / 同代大版本）在**有运维服务器**环境，登录 Jenkins（`http://<ip>:8080`，账号 `ehr/ehr@123`，见 RB-12）→
+  常规版本更新（补丁 / 小版本 / 同代大版本）在**有运维服务器**环境，登录 Jenkins（`http://<ip>:端口`，账号 `ehr/ehr@123`，见 RB-12）→
   执行 **EHR 视图下的 `updateEHR` 任务**（该任务已含：停应用 → 备库 → 拉新包 → 更新 → 启动）。**无需手动停库 / 传包 / 恢复 / 清理**。
   - 不通外网版本：下载最新 `ehr_privatization.war` 放运维机 dhr 文件夹（默认 `D:\dhr`）后跑 `updateEHR`。
   - 🔴 **边界：常规升级 = Jenkins 一键**；只有 DHR1.0 → 2.0 跨代迁移才走路径C 长流程，日常升级切勿套用。
