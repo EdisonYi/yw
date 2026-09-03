@@ -262,6 +262,6 @@
   - 新增 **RB-28 无运维服务器完整部署流程**: fontconfig前置依赖、域名+https证书必须、建议防火墙、物料清单(JDK/war/cfg.properties/tomcat.properties/deployWeb.sh)、deployWeb.sh 交互(通license输入y / 软加密输入n)、开放端口、init_PostgreSQL_Index.sql 预置索引(反引号串自动解析psql路径)、收尾建crontab备份(RB-12)
   - 回写 RB-10(新部署为 mongodb8 目录,存量可能 mongodb6)、RB-26(CPU/AVX 预检 + 部署手册索引指向 RB-27/28)
   - SKILL.md 路由 RB-10~RB-26 → RB-10~RB-28；调研来源补第五批；sources-index.md 补五批条目
-- 边界: 出厂默认连接密码(kh5MCLQRhe / 7HM9wjbU74)**未写入** skill，沿用 RB-10 顶端诚实边界「目录与密码见原文档」；仅记库名/端口/用户
+- 边界: 出厂默认连接密码(MongoDB8 库 ehr 用户 ehr / PostgreSQL15 库 dbehr 用户 postgres 的出厂密码)**不写入** skill 任何文件，沿用 RB-10 顶端诚实边界「目录与密码见原文档」；仅记库名/端口/用户。🔴 本行脱敏：审计时不得回写明文密码（含"未写入"类描述）
 - 验证: RB-27/28 落位(311/334行)；SKILL 8308B(<9820红线)；runbook 41921B；容器字样 SKILL/runbook 均 0；明文密码扫描 0 命中
-- 推送: 10:50 经 GitHub Contents API 推送 4 件 → SKILL.md@134b79e / runbook.md@5f944ca / work-log.md@40c0218 / sources-index.md@0cf0b11（远程 main 由 09-02 归类整理态前进到 RB-10~RB-28 完成态）
+- 推送: 10:50 经 GitHub Contents API 推送 4 件 → SKILL.md@134b79e / runbook.md@5f944ca / work-log.md@40c0218 / sources-index.md@0cf0b11（远程 main 由 09-02 归类整理态前进到 RB-10~RB-28 完成态）；10:52 补推 work-log 脱敏版
