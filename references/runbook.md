@@ -82,7 +82,7 @@
 - **还原（🔴 变更型 · 须确认影响面后执行）**（来源《dhr2.0备份数据还原》）：
   - **MongoDB 还原**（mongodb6 `/usr/local/ehr/mongodb6` / mongodb8 `/usr/local/ehr/mongodb8`）：① 备份文件拷到对应 `data_bak`（格式 `ehr_YYYYMMDDhhmmss.tar.gz`）② `cd data_bak && tar xf *.tar.gz` ③ `../bin/mongorestore -h 127.0.0.1:27011 -u ehr -p <pwd> -d ehr --drop ./ehr_data/ehr --gzip`（端口 27011、库 ehr、用户 ehr；`<pwd>` 占位不固化明文）。
   - **PostgreSQL15 还原**（库 `dbehr`、端口 5632、账号 postgres）：① 备份文件拷到 `/usr/local/ehr/postgresql15/data_bak` ② `cd data_bak` ③ `../bin/pg_restore -U postgres -p 5632 -h 127.0.0.1 -d dbehr -c *.tar`。
-  - **信创数据库还原**：**人大金仓**已有具体备份/还原命令（见 RB-38）；达梦/迪欧西 DocDB 等仍联系对应厂商确认（yw 不臆测其语法）。
+  - **信创数据库还原**：**人大金仓**已有具体备份/还原命令（见 RB-38）；达梦/迪欧西 DocDB/巨杉 SequoiaDB 等仍联系对应厂商确认（yw 不臆测其语法）。
   - **坑**：还原会覆盖现有数据（`--drop`/`-c`），须先确认已备当前数据；还原后重启应用（RB-11）验证。
 
 ### RB-13 · Redis7 部署与运维（可选缓存）
@@ -101,7 +101,7 @@
   - OS：**银河麒麟 ky10**（国产化）；浏览器不支持 IE 内核，用 Edge/Chrome/Firefox/360极速等
   - 中间件（四选一，嵌入式版）：**东方通 TongWeb V7.0.E.6_P3 / 宝兰德 BES V11 / 中创 InforSuite AS V10.0.3.3 / 金蝶 Apusic V10.0.X**
   - 关系库（三选一）：**人大金仓 V8R6（兼容模式必须 PG 模式）/ 海量 Vastbase G100 V2.2（PG 兼容模式）/ 达梦 V8（7000c，小版本号 3.100 以上）**
-  - 非关系库（文档库）：**DocDB 迪欧西文档型数据库 V3.4**（原巨杉 SequoiaDB 在信创明细中由 DocDB 取代，以《初始部署速览》为准）
+  - 非关系库（文档库）：**新增部署统一使用「迪欧西 DocDB 文档型数据库 V3.4」**；**存量客户已部署「巨杉 SequoiaDB」沿用既有说明**（二者并存、非取代：巨杉为存量库，DocDB 为新增标准库，以《初始部署速览》为准）
 - **人大金仓 R6**：Linux 非 root 用户安装（需标准 home）；字符集 UTF-8、不区分大小写；端口 **54321**；
   `max_connections` 改 1000；**兼容模式必须选 PG 模式**（三强调）
 - **达梦 V8(7000c)**：UTF-8、取消大小写敏感、VARCHAR 以字符为单位；页大小 32K、日志 2048M；
@@ -114,11 +114,10 @@
 ### RB-15 · 服务器中高配置速查（部署前核对）
 | 服务器 | 普通私有化(Ubuntu22.04) | 信创(银河麒麟ky10) |
 |---|---|---|
-| 数据库 | Mongo8+PG15；32G/4vCPU/500G SSD；端口 5632+27011 | 巨杉+金仓/达梦；32G/4vCPU/500G；端口 27017+54321/5236 |
+| 数据库 | Mongo8+PG15；32G/4vCPU/500G SSD；端口 5632+27011 | DocDB(新增)/巨杉(存量)+金仓/达梦/海量；32G/4vCPU/500G；端口 27017+54321/5236 |
 | 应用 | JDK17+dhr；32G/4vCPU/500G；80/443 | JDK17+中间件；32G/4vCPU/500G；80/443 |
 | 运维 | Jenkins(Windows)；8G/2vCPU/500G；3389 | 同左 |
-| 报表 | 横石；8~16核/24~32G/200~500G SSD | 同左 |
-- **红线**：各服务器**不能合并**、不能装第三方服务（如衡石/OA）；必须单独购买部署；必须买防火墙；
+- **红线**：各服务器**不能合并**、不能装第三方服务（如OA）；必须单独购买部署；必须买防火墙；
   数据库防火墙开 27011/54321(金仓)/5236(达梦)，web 开 80/443；时间须校准（`timedatectl`/ntpdate）。
 - **备注**（来源《私有化初始部署速览》）：人数 >3000 / 全员考勤打卡 / 批量算薪 的客户推荐高配服务器；运维服务器可用普通 PC 代替（主要方便运维、无命令操作）。
 - **集群部署（7 台）**（来源《EHR私有化集群部署文档》）：数据库 3 + 应用 2 + 缓存 1 + 负载均衡 1（低/高配与上表一致，见 RB-40）；服务器**不能合并**、不能装第三方服务。
@@ -148,8 +147,8 @@
 - **前置**：所有「改 cfg.properties / tomcat.properties / 重生成授权 / 重启」属 RB-17 高危，确认影响面后执行（yw 不自行执行未授权变更）。
 
 ### RB-17 · DHR2.0 运维黑名单（危险/禁止动作）
-- 🔴 **禁止把数据库服务暴露到外网**（Mongo/PG/金仓/达梦/巨杉）——仅限内网，防火墙只开必要端口。
-- 🔴 **禁止合并服务器角色**（数据库/应用/报表必须分离）；禁止在它们上装第三方服务。
+- 🔴 **禁止把数据库服务暴露到外网**（Mongo/PG/金仓/达梦/DocDB/巨杉）——仅限内网，防火墙只开必要端口。
+- 🔴 **禁止合并服务器角色**（数据库/应用必须分离）；禁止在它们上装第三方服务。
 - 🔴 **禁止改默认端口后不同步配置**（金仓 54321、达梦 5236、Mongo 27011、Redis 6389）。
 - 🔴 **停库/删备份/重生成授权文件**前必须确认影响面并留回滚（见 SKILL.md Step 4）。
 - 🔴 **不通外网的信创私有化不做客开**，必须做先联系研发。
@@ -162,13 +161,17 @@
   - ① 升级通道：有运维服务器（Jenkins 管）→ 常规走 Jenkins 一键更新（路径B）；**仅 DHR1.0 → 2.0 跨代迁移**才走长流程（路径C）。无运维服务器 → 手动 `deployDHR.sh`（路径A）。
   - ② 当前版本：登录页右下角版本号（升级前记录、升级后核对）。
   - ③ 路径布局（RB-10）：应用 `/usr/local/dhr`、库 `/usr/local/ehr/...`。
-- **路径A · 无运维服务器更新**（本机 `dhr2.0无运维服务器更新.txt`，确定可用）：
+- **路径A · 无运维服务器更新**（本机 `dhr2.0无运维服务器更新.txt` + 语雀《dhr2.0无运维服务器升级步骤》，确定可用）：
   1. 停应用：`cd /usr/local/dhr && sh stopDHR.sh`
   2. 备 PG：`su - postgres -c "/bin/bash /usr/local/ehr/postgresql15/postgresql_data_bak.sh"`
-  3. 备 Mongo：`/usr/local/ehr/mongodb6/mongodb_data_bak.sh`
+  3. 备 Mongo（按实际安装版本二选一）：`/usr/local/ehr/mongodb6/mongodb_data_bak.sh` 或 `/usr/local/ehr/mongodb8/mongodb_data_bak.sh`
   4. 传包：上传 `ehr_privatization.war` 到应用服务器 `/usr/local`
-  5. 执行更新：`/usr/local/deployDHR.sh`（自动解包部署）
-  6. 启应用：`cd /usr/local/dhr && sh startDHR.sh`
+  5. 备份配置文件（升级前必做，防 `deployDHR.sh` 覆盖配置）：
+     - 目标：`/usr/local/dhr/config/` 下全部文件（`*.properties` 及子目录）
+     - 命名/存放：`mkdir -p /tmp/properties`date +%Y%m%d`` → `cp -r /usr/local/dhr/config/* /tmp/properties`date +%Y%m%d``（备份到 `/tmp/properties<YYYYMMDD>`，日期后缀按 `date +%Y%m%d` 生成，回滚时按日期定位）
+     - 注意事项：须在**停服后**（第 1 步已停）执行更新脚本前完成；`config` 是应用运行配置，更新脚本会重写它，未备份则升级异常时无法回滚
+  6. 执行更新：`/usr/local/deployDHR.sh`（自动解包部署）
+  7. 启应用：`cd /usr/local/dhr && sh startDHR.sh`
 - **路径B · 有运维服务器常规升级（Jenkins 一键更新 `updateEHR`）**：
   常规版本更新（补丁 / 小版本 / 同代大版本）在**有运维服务器**环境，登录 Jenkins（`http://<ip>:8080`，账号 `ehr/ehr@123`，见 RB-12）→
   执行 **EHR 视图下的 `updateEHR` 任务**（该任务已含：停应用 → 备库 → 拉新包 → 更新 → 启动）。**无需手动停库 / 传包 / 恢复 / 清理**。
@@ -187,13 +190,12 @@
   - `sms.properties`：短信平台（非我方容联须改）
   - `cfg` 个性化中文：转 Unicode 编码
   - 出网白名单：应用须可达 `license.x-dhr.com` + `www.x-dhr.com`（见 RB-21；原理见 RB-10 分层定位）
-  - **信创无运维升级**（来源《dhr2.0信创环境无运维服务器升级步骤》）：即路径A 变体——①下载对应中间件 war：东方通 `ehr_tongweb.war` / 宝兰德 `ehr_bes.war` / 金蝶 `ehr_aas.war` 传 `/usr/local` ②数据库备份：PG/mongo 同路径A；**信创库（金仓/达梦）与信创文档库（巨杉/迪欧西）备份须联系厂商确认命令** ③更新前**备份配置**到 `/tmp/properties`date +%Y%m%d``（cp `/usr/local/dhr/config/*` 过去）④`/usr/local/deployDHR.sh` → 启应用 → `tail -300f logs/dhr.log` 验证。栈差异见 RB-14。
+  - **信创无运维升级**（来源《dhr2.0信创环境无运维服务器升级步骤》）：即路径A 变体——①下载对应中间件 war：东方通 `ehr_tongweb.war` / 宝兰德 `ehr_bes.war` / 金蝶 `ehr_aas.war` 传 `/usr/local` ②数据库备份：PG/mongo 同路径A；**信创库（金仓/达梦）与信创文档库（迪欧西 DocDB / 巨杉 SequoiaDB）备份须联系厂商确认命令** ③更新前**备份配置**到 `/tmp/properties`date +%Y%m%d``（cp `/usr/local/dhr/config/*` 过去）④`/usr/local/deployDHR.sh` → 启应用 → `tail -300f logs/dhr.log` 验证。栈差异见 RB-14。
 - **验证**：升级后登录页版本号=目标版；`ps -ef | grep -E 'dhr|mongod|postgres'` 进程在；
   `tail -200f logs/dhr.log` 无新错；业务可正常登录操作（同 RB-11 验证三件套）。
 - **坑**：
   - 升级须停服窗口期；**备库是红线**（RB-12），未备库禁止删旧目录。
   - 大版本升级可能改数据库密码/路径，按实施文档同步 `cfg` 连接串。
-  - 用横石/BI 的客户：升级后 `mongoBI` 需重启、横石数据源 BI 密码需改（遗留项）。
   - 菜单提示「非法请求 ip / ip 地址不合法」→ 属运行时开放平台 IP 白名单问题，见 **RB-22**（与 RB-02 启动授权 mac/ip 不合法不同）。
 
 ### RB-19 · Tomcat 证书配置（HTTPS / SSL，变更型 · 须确认后执行）
@@ -253,9 +255,7 @@
 - **验证**：加 IP 并重启（私有云走 dev_ip 须重启）后，智多薪菜单可正常进入。
 - **坑**：私有云改 `dev_ip` 必须重启应用才生效；公有云开放平台加 IP 一般实时。与 RB-02 勿混淆——RB-02 启动期报 mac/ip 不合法是 license 绑定旧地址，本 RB 是运行时菜单 IP 白名单。
 
----
-
-## RB-23 · Tomcat 端口修改（变更型 · 须确认后执行）
+### RB-23 · Tomcat 端口修改（变更型 · 须确认后执行）
 - **来源**：语雀《dhr2.0Tomcat端口修改操作说明》（2026-09-02 用户提供导出）。
 - **触发**：需改应用监听端口（默认 443，常见改 8443）；或端口冲突（RB-16 地址已在使用）须换端口。
 - **关键事实**：应用默认路径 `/usr/local/dhr`；端口与证书配置文件 `tomcat.properties` 在 `/usr/local/dhr/config`；端口参数 `server.port`。
@@ -299,7 +299,7 @@
 - **双数据库架构**（薪事力须两库同时安装才能启动）：
   - PostgreSQL 15：存基础数据（组织部门、人员花名册、薪酬档案、社保公积金、考勤档案等结构化）。
   - MongoDB 8：存业务数据（考勤打卡、招聘简历、工资套/表、报表、表单、绩效等非结构化/半结构化）。
-- **信创支持明细**（完整版见 RB-14）：OS（银河麒麟 ky10 / openEuler 22.03 LTS SP3 / 统信 V20 1070）；中间件（东方通 TongWeb V7.0.E.6_P3 / 宝兰德 BES V11 / 中创 InforSuite AS V10.0.3.3 / 金蝶 Apusic V10.0.X）；关系库（人大金仓 V8R6 / 海量 Vastbase G100 V2.2 / 达梦 V8 7000c+小版本 3.100）；非关系库（DocDB 迪欧西 V3.4）。
+- **信创支持明细**（完整版见 RB-14）：OS（银河麒麟 ky10 / openEuler 22.03 LTS SP3 / 统信 V20 1070）；中间件（东方通 TongWeb V7.0.E.6_P3 / 宝兰德 BES V11 / 中创 InforSuite AS V10.0.3.3 / 金蝶 Apusic V10.0.X）；关系库（人大金仓 V8R6 / 海量 Vastbase G100 V2.2 / 达梦 V8 7000c+小版本 3.100）；非关系库（迪欧西 DocDB V3.4 新增 / 巨杉 SequoiaDB 存量）。
 - **服务器配置**：人数 >3000 / 全员考勤打卡 / 批量算薪 → 推荐高配（见 RB-15）；运维服务器可用普通 PC（方便运维、无命令操作）。
 - **环境检查清单**（部署前必查，关联 RB-10 / RB-15）：
   - 磁盘：大小 + 挂载；服务器时间须准确（`timedatectl` / ntpdate）。
@@ -455,7 +455,7 @@
 - **还原**：
   - dmp：`sys_restore -U root -d <库名> --clean /home/kingbase/1.dmp`（`--clean` 会删原有数据）
   - sql：`ksql -U root -d <库名> -f /home/kingbase/1.sql`（**无 `--clean`，还原前须手动删旧数据**）
-- **回写 RB-12**：信创库还原中，**人大金仓**现已有具体命令（本 RB）；**达梦/迪欧西 DocDB 仍联系对应厂商确认**（yw 不臆测其语法）。
+- **回写 RB-12**：信创库还原中，**人大金仓**现已有具体命令（本 RB）；**达梦/迪欧西 DocDB/巨杉 SequoiaDB 仍联系对应厂商确认**（yw 不臆测其语法）。
 
 ### RB-39 · 数据库数据文件大小 / 表数量统计（资源盘点）
 - **来源**：语雀《查看数据库数据文件大小、统计表数量》（2026-09-03 用户提供导出）。只读查询，无变更。
@@ -468,7 +468,7 @@
 ### RB-40 · 私有化集群部署（7 台服务器）
 - **来源**：语雀《dhr2.0-EHR私有化集群部署文档》（2026-09-03 用户提供导出）。与 RB-26（单机速览）/ RB-28（无运维单机流程）互补，本 RB 为**集群版总览**。
 - **7 台服务器（低/高配）**：数据库 3 台（4核/32G/500G 或 8核/64G/1T）+ 应用 2 台（4核/32G/200G 或 8核/64G/200G）+ 缓存 1 台 + 负载均衡 1 台（后两者同应用配置）。
-- **红线**：各服务器**不能合并**、不能装第三方服务（衡石/OA）；必须单独购买；必须买防火墙。
+- **红线**：各服务器**不能合并**、不能装第三方服务（OA）；必须单独购买；必须买防火墙。
 - **部署顺序与组件**：① 磁盘挂载（`fdisk -l`→`df -T -h`→`mkfs.ext4 /dev/vdb`→`mount /dev/vdb /usr/local/ehr`→`/etc/fstab` 开机挂载）② 句柄数（root+postgres，`/etc/security/limits.conf`）③ MongoDB6 集群（RB-30）④ PG15 主从 ⑤ Redis7 ⑥ DHR 应用（2 台）⑦ nginx 负载均衡（RB-32）。
 - **DHR 应用双节点关键**：
   - `cfg.properties` 增加 `product.localMaster=true` **只能配在一台**应用服务器（主节点标识，禁止两台都配）。
