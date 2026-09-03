@@ -43,7 +43,7 @@ yw/                      # 本仓库即 skill 根目录（开放 Agent Skills �
 ├── deploy.ps1           # 一键部署（Windows PowerShell）
 └── references/
     ├── work-log.md      # 运维工作日志（持续累积）
-    ├── runbook.md       # 可复用 playbook（重复问题沉淀，RB-10~RB-26）
+    ├── runbook.md       # 可复用 playbook（重复问题沉淀，RB-10~RB-40）
     └── sources-index.md # 知识来源索引（官方/语雀文档溯源，不纳入二进制）
 ```
 
