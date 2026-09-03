@@ -265,3 +265,31 @@
 - 边界: 出厂默认连接密码(MongoDB8 库 ehr 用户 ehr / PostgreSQL15 库 dbehr 用户 postgres 的出厂密码)**不写入** skill 任何文件，沿用 RB-10 顶端诚实边界「目录与密码见原文档」；仅记库名/端口/用户。🔴 本行脱敏：审计时不得回写明文密码（含"未写入"类描述）
 - 验证: RB-27/28 落位(311/334行)；SKILL 8308B(<9820红线)；runbook 41921B；容器字样 SKILL/runbook 均 0；明文密码扫描 0 命中
 - 推送: 10:50 经 GitHub Contents API 推送 4 件 → SKILL.md@134b79e / runbook.md@5f944ca / work-log.md@40c0218 / sources-index.md@0cf0b11（远程 main 由 09-02 归类整理态前进到 RB-10~RB-28 完成态）；10:52 补推 work-log 脱敏版
+
+## 2026-09-03 15:02 · 咨询：mongodb 如何备份（@skill:yw）
+- 类型: 咨询（只读，未登机）
+- 现象: 问 MongoDB 备份做法
+- 定位: 对齐 RB-12（数据库备份）。分三档给：①手动跑 `mongodb_data_bak.sh`（mongodb8 `/usr/local/ehr/mongodb8`、mongodb6 `/usr/local/ehr/mongodb6`）②有运维服务器由 Jenkins 每日 3 点自动备（含 FTP 拉回、存 7 天）③无运维服务器用 root 的 crontab 每日 02:00 跑脚本；产物在 `data_bak/`（格式 `ehr_YYYYMMDDhhmmss.tar.gz`）；红线=异地多份+库禁外网
+- 处置: 未变更任何环境，仅输出指引；附 mongodump 通用兜底命令（标注为非官方脚本路径时的替代方案）
+- 验证: 待用户回传 `crontab -l` / `ls data_bak` 结果确认
+- 待跟进: 需用户确认是 mongodb8 还是 mongodb6（路径不同）、有/无运维服务器；本条 work-log 仅在本地
+
+## 2026-09-03 15:20 · 更新 yw：第六批语雀文档（darwin-skill 把关）
+- 类型: 变更（知识库扩充，非排障）
+- 输入: 语雀导出 13 篇——limit.properties 限定量 / MongoDB6集群(三节点) / 文案国际化替换 / nginx反向代理 / 微信服务号新版 / nginx上传413 / 数据库改用户密码 / 页面NoSuchFileException / 人大金仓备份还原 / OA下划线请求头 / 库文件大小统计 / startDHR process running / EHR私有化集群部署
+- 处置(darwin纪律: 备份 backups/*.bak.20260903-1520 → 最小变更 → 一致性校验 → 体积红线 → 密码脱敏):
+  - 新增 **RB-29 limit.properties 限定量**(file.uploadMaxSize=300 / maxMainFormFieldCount=260 / maxAccountCount=2000 等常用项+坑)
+  - 新增 **RB-30 MongoDB6 集群(三节点)**(句柄数65536 / mongod.cfg三处 / keyfile 600 / rs.initiate priority 3-2-1 / AVX)
+  - 新增 **RB-31 文案国际化替换**(i18n_en/zh_CN / 完全匹配 / 拆分含"/"文案 / deployDHR.sh 取消注释)
+  - 新增 **RB-32 nginx 反向代理+坑**(http/ssl 配置 / 坑1 上传413→client_max_body_size / 坑2 OA下划线→underscores_in_headers on)
+  - 新增 **RB-33 微信服务号新版**(仅80/443 / wechat.properties appId·appSecret·模板消息 / IP白名单填出口IP / 自定义菜单)
+  - 新增 **RB-34 数据库改用户密码**(psql→ours_account→UPDATE password=SHA1密文→重启；密文占位不固化)
+  - 新增 **RB-35 页面NoSuchFileException**(Tomcat work 目录被清→重启或升6.02+；区分 RB-16 东方通)
+  - 新增 **RB-36 信创人大金仓备份还原**(sys_dump -Fc/-Fp / sys_restore --clean / ksql；回写 RB-12 金仓不再"联系厂商")
+  - 新增 **RB-37 库文件大小/表数量统计**(pg_database_size / pg_tables / db.stats())
+  - 新增 **RB-38 私有化集群部署(7台)**(3库+2应用+1缓存+1负载 / product.localMaster 只配一台 / 双节点第二个起 ip·mac 不合法 / 磁盘挂载)
+  - 回写 RB-11(process is running 坑)、RB-12(金仓还原→RB-36)、RB-15(集群7台)、RB-26(手册索引补 RB-29/30/31/32/33/36/38)
+  - SKILL.md 路由 RB-10~RB-28 → RB-10~RB-38 + 调研来源补第六批；sources-index.md 补六批 13 篇
+- 边界: MongoDB6/PG15/Redis 出厂密码、123456 的 SHA1 密文均不写入(明文密码零写入红线)；只记端口/库名/用户，密码写"见原文档"
+- 验证: RB-29~38 落位(363-457行)；SKILL RB-10~RB-38=1；容器字样 SKILL/runbook/sources 均 0；明文密码扫描 0 命中；SKILL 9544B(<150% 红线)、runbook 41921B→55551B
+- 待跟进: 推送远程（本条 work-log 及 runbook/SKILL/sources 四件）
