@@ -264,4 +264,4 @@
   - SKILL.md 路由 RB-10~RB-26 → RB-10~RB-28；调研来源补第五批；sources-index.md 补五批条目
 - 边界: 出厂默认连接密码(kh5MCLQRhe / 7HM9wjbU74)**未写入** skill，沿用 RB-10 顶端诚实边界「目录与密码见原文档」；仅记库名/端口/用户
 - 验证: RB-27/28 落位(311/334行)；SKILL 8308B(<9820红线)；runbook 41921B；容器字样 SKILL/runbook 均 0；明文密码扫描 0 命中
-- 待跟进: 本轮改动仅在本地，是否经 GitHub Contents API 推远程（远程仍是 2026-09-02 归类整理态）
+- 推送: 10:50 经 GitHub Contents API 推送 4 件 → SKILL.md@134b79e / runbook.md@5f944ca / work-log.md@40c0218 / sources-index.md@0cf0b11（远程 main 由 09-02 归类整理态前进到 RB-10~RB-28 完成态）
