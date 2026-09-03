@@ -17,13 +17,10 @@
 - **触发**：应用启动报 `mac地址不合法：xx-xx…` 或 `ip地址不合法：x.x.x.x`（Caused by: ...BizException）。
 - **根因（语雀原文）**：服务器 MAC 或 IP 改变（含迁移 / 换网卡）→ license 绑定的是初次部署获取的旧 MAC/IP，不符即拒。
 - **两层不可混**（排障时先判）：
-  - ① **格式非法**（本机 xzl 校验逻辑）：授权登记的 IP 有前导零/段>255、MAC 未归一成 `:` 分隔 → 改授权配置里的地址书写格式（低风险）。
-  - ② **绑定不一致**（语雀运行时主因）：格式对但 ≠ 当前真实网卡 → 须重绑授权（高风险，见下）。
-- **标准处置（绑定不一致 / 即语雀该报错）**：收集真实 `ip a` + `cat /sys/class/net/<主网卡>/address` 的 MAC/IP →
+  - ② **绑定不一致**（语雀运行时主因）：当前真实网卡 → 须重绑授权（高风险，见下）。
+- **标准处置（绑定不一致 / 即语雀该报错）**：收集真实MAC/IP →
   **提交单位信息 + 提示的 mac/ip 给 license 生产管理员重新绑定新地址** → 重启应用（RB-11）。
-  - 双网卡环境建议把授权绑到**内网固定 MAC**，避免系统随机取错网卡。
 - **验证**：重启后授权校验通过、应用正常起；`logs/dhr.log` 无地址不合法。
-- **坑**：代理链下取 `X-Forwarded-For` 为空会误判来源，须从真实网卡取；格式非法先改格式，别急着重生成授权。
 
 ## RB-03 · 磁盘满 / 端口冲突 / 进程死了（通用三板斧）
 - **触发**：服务异常、起不来、端口被占。
@@ -71,7 +68,7 @@
   - Mongo：`/usr/local/ehr/mongodb6/mongodb_data_bak.sh`
   - PG：`su - postgres -c "/bin/bash /usr/local/ehr/postgresql15/postgresql_data_bak.sh"`
 - **Jenkins 自动备份**：运维服务器（Windows）Jenkins 每天 **2 点备 PG、3 点备 Mongo**，经 FTP 拉到 Jenkins 机，
-  存最近 7 天压缩包。Jenkins `http://<ip>:8080`，账号 `ehr/ehr@123`。
+  存最近 7 天压缩包。Jenkins `http://<ip>:端口`，账号 `ehr/ehr@123`。
 - **无运维服务器定时备份（crontab）**（来源《dhr2.0无运维服务器如何创建数据库自动备份定时任务》）：无运维服务器时，
   用系统 crontab 做每日定时备。**以 root 连数据库服务器**；`crontab -e`（ubuntu 首次需按提示设默认编辑器）追加：
   - Mongo：`00 02 * * * /usr/local/ehr/mongodb6/mongodb_data_bak.sh`（mongodb8 改 `mongodb8` 路径）
