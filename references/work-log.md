@@ -245,3 +245,23 @@
 - 处置: 给信创支持栈(OS ky10/中间件四选一/关系库三选一/DocDB) + 各场景路径 + 信创坑(不支持客开/临时文件缺失/openssl3·NTFS·ARM差异/信创库备份联系厂商/金仓须PG模式)；高危须确认后执行
 - 验证: 无（咨询，未动）
 - 待跟进: 用户给 ①场景(部署/升级/迁移) ②当前+目标中间件/关系库 ③OS架构(ARM/x86信创) ④有/无运维 → 出具体方案+高危确认三件套
+
+## 2026-09-02 18:16 · 归类整理 yw 模块（darwin-skill 把关）
+- 类型: 变更（仓库结构整理，非运维排障）
+- 现象: 用户要求识别并收集所有 yw 相关文档/skill 文件，统一归类到 yw 命名模块，推 GitHub
+- 定位: 三处 yw 相关——①活跃 skill ~/.workbuddy/skills/yw/(最新，但被14个.bak打乱) ②旧git副本 Claw/yw-skill/(含README+deploy脚本，SKILL略旧) ③Downloads来源文档(pdf/docx/md)
+- 处置(darwin纪律:备份/最小变更/一致性): ①14个.bak归档到 backups/(保留回滚,不推) ②补回README.md+deploy.sh+deploy.ps1(取自旧副本) ③新建 references/sources-index.md(来源文档索引,不推二进制) ④更新README结构图对齐实际 ⑤经GitHub Contents API推7件(README/SKILL/deploy.sh/deploy.ps1/references/{runbook,work-log,sources-index}),backups/不推
+- 验证: 远程根含README/SKILL/deploy.sh/ps1, references/含runbook/work-log/sources-index, backups/ HTTP404(未推); 临时脚本/token已清理
+- 待跟进: Claw/yw-skill旧副本未删(用户财产,可清理); 来源文档二进制未纳入仓库(如需建sources/子目录复制原文再推)
+
+## 2026-09-03 10:43 · 更新 yw：第五批语雀文档（darwin-skill 把关）
+- 类型: 变更（知识库扩充，非排障）
+- 输入: 语雀导出 3 篇——《dhr2.0不同适配的操作系统下MongoDB8数据库部署》《dhr2.0-PostgreSQL15数据库部署》《dhr2.0无运维服务器部署手册》
+- 处置(darwin纪律: 备份 backups/*.bak.20260903-1043 → 最小变更 → 一致性校验 → 体积红线):
+  - 新增 **RB-27 数据库部署(MongoDB8/PostgreSQL15 · OS与CPU架构适配)**: x86(须AVX)/ARM 适配矩阵、部署包URL、预置脚本(init_MongoDB_App.js + inti_MongoDB_index.js 保持官方拼写)、deployMongoDB.sh/deployPostgreSQL.sh、在线·离线两种安装、27011/5632、/tmp/install.log 排错、6条坑
+  - 新增 **RB-28 无运维服务器完整部署流程**: fontconfig前置依赖、域名+https证书必须、建议防火墙、物料清单(JDK/war/cfg.properties/tomcat.properties/deployWeb.sh)、deployWeb.sh 交互(通license输入y / 软加密输入n)、开放端口、init_PostgreSQL_Index.sql 预置索引(反引号串自动解析psql路径)、收尾建crontab备份(RB-12)
+  - 回写 RB-10(新部署为 mongodb8 目录,存量可能 mongodb6)、RB-26(CPU/AVX 预检 + 部署手册索引指向 RB-27/28)
+  - SKILL.md 路由 RB-10~RB-26 → RB-10~RB-28；调研来源补第五批；sources-index.md 补五批条目
+- 边界: 出厂默认连接密码(kh5MCLQRhe / 7HM9wjbU74)**未写入** skill，沿用 RB-10 顶端诚实边界「目录与密码见原文档」；仅记库名/端口/用户
+- 验证: RB-27/28 落位(311/334行)；SKILL 8308B(<9820红线)；runbook 41921B；容器字样 SKILL/runbook 均 0；明文密码扫描 0 命中
+- 待跟进: 本轮改动仅在本地，是否经 GitHub Contents API 推远程（远程仍是 2026-09-02 归类整理态）
